@@ -1,0 +1,22 @@
+{
+  // Visit https://aka.ms/tsconfig to read more about this file
+  "compilerOptions": {
+    // File Layout
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    // Environment Settings
+    "module": "commonjs",
+    "target": "es6",
+    "types": [],
+
+    // Recommended Options
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+
+    // Make sure custom types are picked up
+    "typeRoots": ["./src/types", "./node_modules/@types"]
+  },
+  "include": ["src"]
+}
