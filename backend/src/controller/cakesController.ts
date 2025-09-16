@@ -88,7 +88,6 @@ export const updateCake = async (req: Request, res: Response) => {
         .json({ success: false, message: "Cake not found" });
     }
 
-    // Fetch updated row (for MySQL/SQLite)
     const updatedCake = await knex("cakes").where({ id }).first();
 
     res.status(200).json({
