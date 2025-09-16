@@ -76,7 +76,8 @@ export default function UsersPage() {
       </div>
 
       <DataTable
-        columns={columns}
+        table={table}
+        // columns={columns}
         data={users}
         onToggleStatus={handleToggleStatus}
       />

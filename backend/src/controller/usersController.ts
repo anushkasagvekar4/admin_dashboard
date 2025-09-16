@@ -1,5 +1,6 @@
+import { User } from "../models/user";
 import { Request, Response } from "express";
-import knex from "../db/knexInstance";
+// import knex from "../db/knexInstance";
 
 // Create user
 export const createUser = async (req: Request, res: Response) => {
@@ -12,22 +13,20 @@ export const createUser = async (req: Request, res: Response) => {
         .json({ success: false, message: "All fields are required" });
     }
 
-    const result = await knex.raw(
-      `INSERT INTO "users" (full_name, email, phone, address)
-       VALUES (?, ?, ?, ?)
-       RETURNING *`,
-      [full_name, email, phone, address]
-    );
-
-    const newUser = result.rows[0];
+    const newUser = await User.query().insert({
+      full_name,
+      email,
+      address,
+      phone,
+    });
 
     res.status(201).json({
       success: true,
       message: "User added successfully",
-      data: newUser.rows,
+      data: newUser,
     });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -83,43 +82,39 @@ export const getAllUser = async (req: Request, res: Response) => {
 
     const pageNumber = parseInt(page as string, 10);
     const pageSize = parseInt(limit as string, 10); // ✅ Correct
-    const offset = (pageNumber - 1) * pageSize;
+    // const offset = (pageNumber - 1) * pageSize;
 
     // 2 *10
     // Build WHERE clause for search
 
-    const searchStr = search.toString().trim();
-    let whereClause = "";
-    if (searchStr) {
-      whereClause = `WHERE full_name ILIKE '%${searchStr}%' 
-                     OR email ILIKE '%${searchStr}%' 
-                     OR phone ILIKE '%${searchStr}%'`;
+    // Start query
+    let query = User.query();
+
+    // Apply search
+    if (search) {
+      query = query.where((builder) => {
+        builder
+          .where("full_name", "ilike", `%${search}%`)
+          .orWhere("email", "ilike", `%${search}%`)
+          .orWhere("phone", "ilike", `%${search}%`);
+      });
     }
 
-    // Total count for pagination
-    const totalResult = await knex.raw(
-      `SELECT COUNT(*) AS total FROM users ${whereClause}`
-    );
-    const total = parseInt(totalResult.rows[0].total, 10);
+    // Apply sorting
+    query = query.orderBy(sortBy as string, order as "asc" | "desc");
 
-    // Fetch users with pagination & sorting
-    const usersResult = await knex.raw(
-      `SELECT * FROM users 
-       ${whereClause} 
-       ORDER BY ${sortBy} ${order} 
-       LIMIT ? OFFSET ?`,
-      [pageSize, offset]
-    );
+    // Pagination with Objection's built-in `.page()`
+    const result = await query.page(pageNumber - 1, pageSize);
 
     res.status(200).json({
       success: true,
-      message: "users fetched successfully",
-      data: usersResult,
+      message: "Users fetched successfully",
+      data: result.results, // paginated rows
       pagination: {
-        total,
+        total: result.total,
         page: pageNumber,
         limit: pageSize,
-        totalPages: Math.ceil(total / pageSize),
+        totalPages: Math.ceil(result.total / pageSize),
       },
     });
   } catch (error: any) {
@@ -150,12 +145,12 @@ export const updateUserStatus = async (req: Request, res: Response) => {
         .json({ success: false, message: "Invalid status" });
     }
 
-    const result = await knex.raw(
-      `UPDATE users SET status = ?, updated_at = NOW() WHERE id = ?`,
-      [status, id]
-    );
+    const updatedUser = await User.query().patchAndFetchById(id, {
+      status,
+      updated_at: new Date(),
+    });
 
-    if (result.rowCount === 0) {
+    if (!updatedUser) {
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
@@ -164,6 +159,7 @@ export const updateUserStatus = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       message: `User ${status === "active" ? "activated" : "deactivated"}`,
+      data: updatedUser,
     });
   } catch (error: any) {
     console.error("Error updating user status:", error);

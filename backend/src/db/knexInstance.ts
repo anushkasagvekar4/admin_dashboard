@@ -1,6 +1,11 @@
-import knexInit, { Knex } from "knex";
+import { knex, Knex } from "knex";
 import config from "./knexfile";
+import { Model } from "objection";
 
-const knex: Knex = knexInit(config.development);
+// Choose env config (development, production, etc.)
+const db: Knex = knex(config.development);
 
-export default knex;
+// Bind Objection models to knex
+Model.knex(db);
+
+export default db;

@@ -12,7 +12,6 @@ export const signin = async (req: Request, res: Response) => {
         .status(400)
         .json({ success: false, message: "All fields are required" });
     }
-    // const hashedPassword = await bcrypt.hash(password, 10);
     const result = await knex.raw(
       `SELECT * FROM "auth" WHERE "email" = ? LIMIT 1`,
       [email]
@@ -28,12 +27,6 @@ export const signin = async (req: Request, res: Response) => {
         .json({ success: false, message: "Invalid credentials" });
     }
 
-    // const isPasswordMatch = await bcrypt.compare(password, newUser.password);
-    // if (!isPasswordMatch) {
-    //   return res
-    //     .status(401)
-    //     .json({ success: false, message: "Invalid credentials" });
-    // }
     if (!newUser || newUser.password !== password) {
       return res
         .status(401)
