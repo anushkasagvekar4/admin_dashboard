@@ -50,7 +50,7 @@ const usersSlice = createSlice({
       })
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.loading = false;
-        state.users = action.payload.data.rows;
+        state.users = action.payload.data;
         state.pagination = action.payload.pagination;
       })
       .addCase(fetchUsers.rejected, (state, action) => {

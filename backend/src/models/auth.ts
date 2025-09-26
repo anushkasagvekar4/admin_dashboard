@@ -1,10 +1,11 @@
+import knex from "../db/knexInstance";
 import { Model } from "objection";
-import { format } from "path";
+
 export class Auth extends Model {
   id!: string;
   email!: string;
   password!: string;
-  isAdmin!: boolean;
+  role!: "customer" | "shop_admin" | "super_admin"; // enum
   created_at!: Date;
   updated_at!: Date;
 
@@ -12,12 +13,19 @@ export class Auth extends Model {
 
   static jsonSchema = {
     type: "object",
-    required: ["email", "password"],
+    required: ["email", "password", "role"],
     properties: {
-      id: { type: "integer", format: "uuid" },
+      id: { type: "string", format: "uuid" },
       email: { type: "string", format: "email" },
       password: { type: "string" },
-      isAdmin: { type: "boolean" },
+      role: {
+        type: "string",
+        enum: ["customer", "shop_admin", "super_admin"],
+      },
+      created_at: { type: "string", format: "date-time" },
+      updated_at: { type: "string", format: "date-time" },
     },
   };
 }
+// ✅ Bind this model to the Knex instance
+Auth.knex(knex);

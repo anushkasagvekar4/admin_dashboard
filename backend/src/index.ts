@@ -2,8 +2,11 @@ import express, { Application } from "express";
 import dotenv, { config } from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import userRouter from "./routes/userRoutes";
+import customerRouter from "./routes/customerRoutes";
 import authRouter from "./routes/authRoutes";
+import cakeRouter from "./routes/cakeRoutes";
+import shopRouter from "./routes/shopRoutes";
+import enquiryRouter from "./routes/enquiryRouter";
 
 dotenv.config();
 const app: Application = express();
@@ -19,7 +22,10 @@ app.use(express.json());
 app.use(cookieParser());
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", authRouter);
-app.use("/api/users", userRouter);
+app.use("/api/customers", customerRouter);
+app.use("/api/cakes", cakeRouter);
+app.use("/api/shops", shopRouter);
+app.use("/api/enquiry", enquiryRouter);
 // app.use("/api/orders", orderRouter);
 
 app.listen(port, () => {

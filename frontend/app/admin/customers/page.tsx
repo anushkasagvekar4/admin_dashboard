@@ -76,11 +76,11 @@ export default function UsersPage() {
       </div>
 
       <DataTable
-        table={table}
-        // columns={columns}
-        data={users}
+        columns={columns}
+        data={users || []} // ✅ make sure it's always an array
         onToggleStatus={handleToggleStatus}
       />
+
       {/* Pagination */}
       <div className="flex justify-between mt-4">
         <Button disabled={page === 1} onClick={() => setPage(page - 1)}>

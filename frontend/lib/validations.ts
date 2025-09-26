@@ -34,3 +34,33 @@ export const createUserSchema = Joi.object({
       "string.pattern.base": "Phone number must be 10 digits",
     }),
 });
+
+export const createCakesSchema = Joi.object({
+  name: Joi.string().min(2).max(100).required().messages({
+    "string.empty": "Cake name is required",
+    "string.min": "Cake name must be at least 2 characters",
+    "string.max": "Cake name must be at most 100 characters",
+  }),
+  price: Joi.number().min(1).required().messages({
+    "number.base": "Price must be a number",
+    "number.min": "Price must be at least 1",
+    "any.required": "Price is required",
+  }),
+  type: Joi.string().required().messages({
+    "string.empty": "Cake type is required",
+  }),
+  flavour: Joi.string().required().messages({
+    "string.empty": "Flavour is required",
+  }),
+  category: Joi.string().required().messages({
+    "string.empty": "Category is required",
+  }),
+  people: Joi.number().min(1).required().messages({
+    "number.base": "Number of people must be a number",
+    "number.min": "Number of people must be at least 1",
+    "any.required": "Number of people is required",
+  }),
+  size: Joi.string().required().messages({
+    "string.empty": "Size is required",
+  }),
+});

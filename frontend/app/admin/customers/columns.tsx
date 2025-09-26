@@ -19,7 +19,7 @@ export const columns: ColumnDef<Customer>[] = [
   //   header: "id",
   // },
   {
-    accessorKey: "full_name",
+    accessorKey: "fullName",
     header: "Full Name",
     cell: (info) => info.getValue(),
   },
