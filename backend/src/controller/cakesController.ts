@@ -1,94 +1,119 @@
 import { Request, Response } from "express";
-import knex from "knex";
+import { Cake } from "../models/cake";
+import { AuthRequest } from "../middleware/Auth";
 
-export const getAllCakes = async (req: Request, res: Response) => {
+// CREATE Cake (shop_admin only)
+export const createCake = async (req: AuthRequest, res: Response) => {
   try {
-    const cakes = await knex("cakes").select("*");
-    console.log(cakes);
-    res.status(200).json({
-      succes: true,
-      message: "users fetched successfully",
-      data: cakes,
-    });
-  } catch (error: any) {
-    console.error("Error fetching expenses:", error);
-    res.status(400).json({
-      success: false,
-      message: "server error",
-      error: error,
-    });
-  }
-};
-
-export const deleteCake = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    if (!id) {
-      res.status(400).json({ success: false, message: " ID is required" });
-      return;
+    const { role, id: userId } = req.user!;
+    if (role !== "shop_admin") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Only shop_admins can create cakes" });
     }
 
-    const deletedCake = await knex("cakes").where({ id }).del().returning("*");
+    const {
+      image,
+      cake_name,
+      price,
+      cake_type,
+      flavour,
+      category,
+      size,
+      noofpeople,
+      status,
+    } = req.body;
 
-    console.log(deletedCake);
-
-    res.status(200).json({
-      succes: true,
-      message: "cake deleted successfully",
-      data: deletedCake,
+    const newCake = await Cake.query().insertAndFetch({
+      image,
+      cake_name,
+      price,
+      cake_type,
+      flavour,
+      category,
+      size,
+      noofpeople,
+      status: status || "active",
+      shopId: userId, // ownership
     });
-  } catch (error: any) {
-    console.error("Error fetching expenses:", error);
-    res.status(400).json({
-      success: false,
-      message: "server error",
-      error: error,
-    });
-  }
-};
 
-export const createCake = async (req: Request, res: Response) => {
-  try {
-    const [newCake] = await knex("cakes").insert(req.body).returning("*");
     res.status(201).json({
-      succes: true,
-      message: "cake created successfully",
+      success: true,
+      message: "Cake created successfully",
       data: newCake,
     });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    console.error("Create cake error:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
-export const updateCake = async (req: Request, res: Response) => {
+
+// READ all cakes (anyone can view)
+export const getAllCakes = async (_req: Request, res: Response) => {
+  try {
+    const cakes = await Cake.query();
+    res.status(200).json({ success: true, data: cakes });
+  } catch (err: any) {
+    console.error("Get cakes error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// READ single cake
+export const getCakeById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, price, description } = req.body; // fields to update
-
-    if (!id) {
+    const cake = await Cake.query().findById(id);
+    if (!cake) {
       return res
-        .status(400)
-        .json({ success: false, message: "ID is required" });
+        .status(404)
+        .json({ success: false, message: "Cake not found" });
+    }
+    res.status(200).json({ success: true, data: cake });
+  } catch (err: any) {
+    console.error("Get cake error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// UPDATE Cake (only owner shop_admin)
+export const updateCake = async (req: AuthRequest, res: Response) => {
+  try {
+    const { role, id: userId } = req.user!;
+    console.log("[UPDATE] User info:", req.user);
+
+    if (role !== "shop_admin") {
+      console.log("[UPDATE] Forbidden: user is not shop_admin");
+      return res
+        .status(403)
+        .json({ success: false, message: "Only shop_admins can update cakes" });
     }
 
-    // Check if any fields are sent
-    if (!name && !price && !description) {
-      return res
-        .status(400)
-        .json({ success: false, message: "No fields to update" });
-    }
+    const { id } = req.params;
+    console.log("[UPDATE] Cake ID to update:", id);
 
-    // Perform update
-    const updated = await knex("cakes")
-      .where({ id })
-      .update({ name, price, description });
+    const cake = await Cake.query().findById(id);
+    console.log("[UPDATE] Fetched cake:", cake);
 
-    if (!updated) {
+    if (!cake) {
+      console.log("[UPDATE] Cake not found");
       return res
         .status(404)
         .json({ success: false, message: "Cake not found" });
     }
 
-    const updatedCake = await knex("cakes").where({ id }).first();
+    if (cake.shopId !== userId) {
+      console.log(
+        `[UPDATE] Not authorized: cake.shopId (${cake.shopId}) !== userId (${userId})`
+      );
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to update this cake",
+      });
+    }
+
+    const updatedCake = await Cake.query().patchAndFetchById(id, req.body);
+    console.log("[UPDATE] Updated cake:", updatedCake);
 
     res.status(200).json({
       success: true,
@@ -96,6 +121,55 @@ export const updateCake = async (req: Request, res: Response) => {
       data: updatedCake,
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("Update cake error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// DELETE Cake (only owner shop_admin)
+export const deleteCake = async (req: AuthRequest, res: Response) => {
+  try {
+    const { role, id: userId } = req.user!;
+    console.log("[DELETE] User info:", req.user);
+
+    if (role !== "shop_admin") {
+      console.log("[DELETE] Forbidden: user is not shop_admin");
+      return res
+        .status(403)
+        .json({ success: false, message: "Only shop_admins can delete cakes" });
+    }
+
+    const { id } = req.params;
+    console.log("[DELETE] Cake ID to delete:", id);
+
+    const cake = await Cake.query().findById(id);
+    console.log("[DELETE] Fetched cake:", cake);
+
+    if (!cake) {
+      console.log("[DELETE] Cake not found");
+      return res
+        .status(404)
+        .json({ success: false, message: "Cake not found" });
+    }
+
+    if (cake.shopId !== userId) {
+      console.log(
+        `[DELETE] Not authorized: cake.shopId (${cake.shopId}) !== userId (${userId})`
+      );
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to delete this cake",
+      });
+    }
+
+    await Cake.query().deleteById(id);
+    console.log("[DELETE] Cake deleted:", id);
+
+    res
+      .status(200)
+      .json({ success: true, message: "Cake deleted successfully" });
+  } catch (err: any) {
+    console.error("Delete cake error:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };

@@ -1,112 +1,112 @@
 "use client";
-import AuthForm from "@/components/AuthForm";
-import { signinSchema } from "@/lib/validations";
-import { joiResolver } from "@hookform/resolvers/joi";
-import React, { useState } from "react";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useForm } from "react-hook-form";
-import { useDispatch } from "react-redux";
-import { AppDispatch, RootState } from "@/app/store/Store";
-import { useSelector } from "react-redux";
-import { signinUser } from "@/app/features/auth/authApi";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-export type SigninData = {
-  email: string;
-  password: string;
-};
-const Signin = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const { user, loading, error } = useSelector(
-    (state: RootState) => state.auth
-  );
+import { toast } from "sonner";
+import { Mail, Lock } from "lucide-react";
+import { useAppDispatch, useAppSelector } from "@/app/store/hook";
+import { signinUser } from "@/app/features/auth/authApi"; // 👈 make sure you have this
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+export default function Signin() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { loading, error } = useAppSelector((state) => state.auth);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<SigninData>({
-    resolver: joiResolver(signinSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const onSubmit = (data: SigninData) => {
-    dispatch(signinUser({ email: data.email, password: data.password }))
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    dispatch(signinUser({ email, password }))
       .unwrap()
-      .then(() => {
-        router.push("/admin/customers");
+      .then((res) => {
+        toast.success("Signed in successfully!", {
+          description: `Welcome back, ${res.email}!`,
+        });
+
+        // ✅ Role-based redirect
+        if (res.role === "super_admin") {
+          router.push("/super_admin/home");
+        } else if (res.role === "shop_admin") {
+          router.push("/admin/home");
+        } else {
+          router.push("/customer/home");
+        }
+      })
+      .catch((err) => {
+        toast.error("Signin failed", {
+          description: err || "Invalid credentials",
+        });
       });
   };
 
   return (
-    <>
-      <div className="bg-orange-100 p-6 rounded-lg max-w-md ">
-        <div>
-          <h1 className="text-2xl text-orange-950 text-center mb-2 font-bold">
-            Signin
-          </h1>
+    <div className="container mx-auto py-12 md:py-16">
+      <div className="mx-auto max-w-md rounded-2xl border bg-card p-6 shadow-sm">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-extrabold">Sign in to your account</h1>
+          <p className="text-muted-foreground">
+            Access your personalized CakeHaven dashboard
+          </p>
         </div>
-        <div className="">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
-            <div>
-              <label htmlFor="">Enter Email:</label>
-              <input
-                type="email"
-                {...register("email")}
-                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-              {errors.email && (
-                <p className="text-red-500 text-sm">{errors.email.message}</p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="">Enter Password:</label>
-              <input
-                type="password"
-                {...register("password")}
-                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-              {errors.password && (
-                <p className="text-red-500 text-sm">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
 
-            <button
-              type="submit"
-              className="w-full bg-orange-950 rounded-lg  hover:bg-orange-900 mt-6 py-2 text-white font-bold"
-            >
-              {loading || isSubmitting ? "Signing in..." : "Signin"}
-            </button>
-            {/* Server Error */}
-            {error && (
-              <p className="text-red-600 text-sm text-center mt-3">{error}</p>
-            )}
-          </form>
-          {/* <p className="text-center text-sm text-gray-500 mt-4">
-            Already have an account?{" "}
-            <Link href="/auth/login" className="text-blue-500 hover:underline">
-              Signup
-            </Link>
-          </p> */}
-        </div>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <div className="relative">
+              <Mail
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                size={18}
+              />
+              <Input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="pl-9 h-11 rounded-xl"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <div className="relative">
+              <Lock
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                size={18}
+              />
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="pl-9 pr-10 h-11 rounded-xl"
+              />
+            </div>
+          </div>
+
+          <Button disabled={loading} className="w-full h-11 rounded-xl">
+            {loading ? "Signing in..." : "Sign in"}
+          </Button>
+        </form>
+
+        {error && <p className="text-red-500 text-center mt-2">{error}</p>}
+
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          Don’t have an account?{" "}
+          <Link href="/auth/signup" className="text-primary hover:underline">
+            Sign up
+          </Link>
+        </p>
       </div>
-    </>
+    </div>
   );
-};
-export default Signin;
+}

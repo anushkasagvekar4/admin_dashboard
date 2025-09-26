@@ -1,5 +1,5 @@
 import { configureStore, combineReducers } from "@reduxjs/toolkit";
-import { persistReducer, persistStore } from "redux-persist";
+import { persistStore, persistReducer } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 import {
   FLUSH,
@@ -10,18 +10,24 @@ import {
   REGISTER,
 } from "redux-persist";
 
-import authReducer from "../features/auth/authSlice";
-import usersReducer from "../features/users/userSlice";
+import authReducer from "@/app/features/auth/authSlice";
+import enquiryReducer from "@/app/features/shop_admin/enquiry/enquirySlice";
+import superAdminReducer from "@/app/features/super_admin/super_admin_enquiry/enquiryUpdateSlice"; // ✅ import
+import shopReducer from "@/app/features/super_admin/super_admin_shops/shopsSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
-  users: usersReducer,
+  enquiry: enquiryReducer, // ✅ reducer key for shop admin
+  superAdmin: superAdminReducer,
+  shops: shopReducer, // ✅ reducer key for super admin
 });
 
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["auth"],
+  whitelist: ["auth", "enquiry"],
+  // 👆 keep only auth + enquiry persisted.
+  // superAdmin state will reset on refresh (good for lists).
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -38,6 +44,5 @@ export const store = configureStore({
 
 export const persistor = persistStore(store);
 
-// Types
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

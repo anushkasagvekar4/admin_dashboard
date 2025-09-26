@@ -1,36 +1,56 @@
-import { createAsyncThunk } from "@reduxjs/toolkit";
 import api from "@/app/utils/axios";
+// app/features/auth/authApi.ts
+import { createAsyncThunk } from "@reduxjs/toolkit";
 
-interface SignInPayload {
-  email: string;
-  password: string;
-}
-
-export const signinUser = createAsyncThunk(
-  "auth/signin",
-  async (payload: SignInPayload, { rejectWithValue }) => {
+// ✅ Signup
+export const signupUser = createAsyncThunk(
+  "auth/signupUser",
+  async (
+    {
+      email,
+      password,
+      role,
+    }: { email: string; password: string; role: string },
+    { rejectWithValue }
+  ) => {
     try {
-      // ✅ Cookie will be set automatically by backend
-      const response = await api.post("/auth/signin", payload);
-      return response.data; // { success, message, isAdmin, token }
-    } catch (error: any) {
+      const res = await api.post("/auth/signup", { email, password, role });
+      return res.data; // { success, message, role, token, email }
+    } catch (err: any) {
       return rejectWithValue(
-        error.response?.data || { message: "Signin failed" }
+        err.response?.data?.message || "Signup failed. Try again."
       );
     }
   }
 );
-export const logoutUser = createAsyncThunk(
-  "auth/logout",
-  async (args, { rejectWithValue }) => {
+
+// ✅ Signin
+export const signinUser = createAsyncThunk(
+  "auth/signinUser",
+  async (
+    { email, password }: { email: string; password: string },
+    { rejectWithValue }
+  ) => {
     try {
-      // ✅ Cookie will be set automatically by backend
-      const response = await api.post("/auth/logout");
-      return response.data; // { success, message, isAdmin, token }
-    } catch (error: any) {
+      const res = await api.post("/auth/signin", { email, password });
+      return res.data; // { success, message, role, token, email }
+    } catch (err: any) {
       return rejectWithValue(
-        error.response?.data || { message: "Signin failed" }
+        err.response?.data?.message || "Signin failed. Try again."
       );
+    }
+  }
+);
+
+// ✅ Logout
+export const logoutUser = createAsyncThunk(
+  "auth/logoutUser",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.post("/auth/logout");
+      return res.data; // { success, message }
+    } catch (err: any) {
+      return rejectWithValue("Logout failed. Try again.");
     }
   }
 );

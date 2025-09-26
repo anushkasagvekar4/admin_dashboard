@@ -15,8 +15,8 @@ export const addUser = createAsyncThunk(
   ) => {
     try {
       // POST request to /api/users
-      const response = await api.post("/users/createUser", payload);
-      console.log(response);
+      const response = await api.post("/customers/createCustomer", payload);
+      // console.log(response);
       // response.data contains { success, message, data }
       return response.data;
     } catch (error: any) {
@@ -52,10 +52,10 @@ export const fetchUsers = createAsyncThunk(
         order = "desc",
       } = params;
 
-      const response = await api.get("/users/getAllUser", {
+      const response = await api.get("/customers/getAllCustomer", {
         params: { page, limit, search, sortBy, order },
       });
-      console.log(response);
+      // console.log(response);
       // response.data should have: { succes, message, data, pagination }
       return response.data;
     } catch (error: any) {
@@ -73,7 +73,7 @@ export const updateUserStatus = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await api.put(`/users/updateUserStatus/${id}`, {
+      const response = await api.put(`/customers/updateCustomerStatus/${id}`, {
         status,
       });
       // backend returns { success, message }
