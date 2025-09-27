@@ -19,6 +19,23 @@ import {
   toggleShopStatus,
 } from "@/app/features/super_admin/super_admin_shops/shopsApi";
 
+// ----------------------
+// Types
+// ----------------------
+type FilterType = "all" | "active" | "inactive";
+type SortByType = "created_at" | "shopname" | "ownername";
+
+interface Shop {
+  id: string;
+  shopname: string;
+  ownername: string;
+  phone: string;
+  email: string;
+  address: string;
+  city: string;
+  status: "active" | "inactive";
+}
+//admin
 export default function AdminShops() {
   const dispatch = useDispatch<AppDispatch>();
   const {
@@ -31,14 +48,12 @@ export default function AdminShops() {
 
   // 🔑 Local states
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<"all" | "active" | "inactive">("all");
+  const [filter, setFilter] = useState<FilterType>("all");
   const [open, setOpen] = useState(false);
 
   // ✅ pagination & sorting state
   const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState<"created_at" | "shopname" | "ownername">(
-    "created_at"
-  );
+  const [sortBy, setSortBy] = useState<SortByType>("created_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
@@ -53,6 +68,9 @@ export default function AdminShops() {
     );
   }, [dispatch, page, q, filter, sortBy, sortOrder]);
 
+  // ----------------------
+  // Status Badge Component
+  // ----------------------
   const StatusBadge = ({ status }: { status: "active" | "inactive" }) => {
     const map = {
       active: { label: "Active", variant: "secondary" as const },
@@ -71,7 +89,7 @@ export default function AdminShops() {
   };
 
   if (loading) return <p>Loading shops...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  // if (error) return <p className="text-red-500">{error.message}</p>;
 
   return (
     <div>
@@ -99,7 +117,7 @@ export default function AdminShops() {
           />
         </div>
         <div className="inline-flex rounded-md p-1 bg-secondary text-sm">
-          {["all", "active", "inactive"].map((f) => (
+          {(["all", "active", "inactive"] as FilterType[]).map((f) => (
             <button
               key={f}
               className={`px-3 py-1.5 rounded-md capitalize ${
@@ -107,7 +125,7 @@ export default function AdminShops() {
               }`}
               onClick={() => {
                 setPage(1);
-                setFilter(f as any);
+                setFilter(f);
               }}
             >
               {f}
@@ -134,8 +152,14 @@ export default function AdminShops() {
                   key={col.key}
                   className="text-left p-3 cursor-pointer"
                   onClick={() => {
-                    setSortBy(col.key as any);
-                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                    if (
+                      col.key === "shopname" ||
+                      col.key === "ownername" ||
+                      col.key === "created_at"
+                    ) {
+                      setSortBy(col.key as SortByType);
+                      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                    }
                   }}
                 >
                   {col.label}{" "}
@@ -146,7 +170,7 @@ export default function AdminShops() {
             </tr>
           </thead>
           <tbody>
-            {shops?.map((s) => (
+            {shops?.map((s: Shop) => (
               <tr key={s.id} className="border-t">
                 <td className="p-3 font-medium">{s.shopname}</td>
                 <td className="p-3">{s.ownername}</td>

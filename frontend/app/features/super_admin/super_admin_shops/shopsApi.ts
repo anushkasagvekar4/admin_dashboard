@@ -9,8 +9,8 @@ export interface Shop {
   ownername: string;
   email: string;
   phone: string;
-  address?: string;
-  city?: string;
+  address: string;
+  city: string;
   status: "active" | "inactive";
   createdAt?: string;
 }
