@@ -21,7 +21,7 @@ export function middleware(request: NextRequest) {
   const protectedPaths = [
     "/admin/customers",
     "/admin/add_user",
-    // "/super_admin/home",
+    "/super_admin/home",
     "/customer/home",
     "/admin/home",
   ];

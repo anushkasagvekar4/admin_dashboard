@@ -5,9 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { joiResolver } from "@hookform/resolvers/joi";
-import { addUser } from "@/app/features/users/userApi";
-import { useDispatch } from "react-redux";
-import { AppDispatch } from "@/app/store/Store";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/app/store/Store";
 import { useState } from "react";
 import Image from "next/image";
 import {
@@ -18,46 +17,82 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// imporrt createCakesSchema
 import { toast } from "sonner";
 import { createCakesSchema } from "@/lib/validations";
-// import { SelectPortal } from "@radix-ui/react-select";
 
-interface CakeData {
-  name: string;
-  price: string;
-  type: string;
-  flavour: string;
-  category: string;
-  people: string;
-  size: string;
+// slices
+import {
+  uploadImage,
+  resetImage,
+} from "@/app/features/common/imageUploadSlice";
+import { createCake } from "@/app/features/shop_admin/cakes/cakeApi";
+
+interface CakeForm {
+  cake_name: string;
+  price: number;
+  cake_type?: string;
+  flavour?: string;
+  category?: string;
+  noofpeople?: string;
+  size?: string;
 }
 
 export default function AddCake() {
   const dispatch = useDispatch<AppDispatch>();
+  const { url: uploadedUrl, status: uploadStatus } = useSelector(
+    (state: RootState) => state.imageUpload
+  );
+  const { loading } = useSelector((state: RootState) => state.cakes);
+
   const [preview, setPreview] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<CakeData>({
-    resolver: joiResolver(createCakesSchema), // Add validation schema if needed
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm<CakeForm>({
+    resolver: joiResolver(createCakesSchema),
     defaultValues: {
-      name: "",
-      price: "",
-      type: "",
+      cake_name: "",
+      price: 0,
+      cake_type: "",
       flavour: "",
       category: "",
-      people: "",
+      noofpeople: "",
       size: "",
     },
   });
 
-  const onSubmit = (data: CakeData) => {
-    // Call your API here
-    toast.success("Cake added successfully!");
-    console.log(data);
+  const handleFileChange = (file: File) => {
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+      dispatch(uploadImage(file));
+    }
+  };
+
+  const onSubmit = async (data: CakeForm) => {
+    if (!uploadedUrl) {
+      toast.error("Please upload an image before submitting");
+      return;
+    }
+
+    const cakeData = {
+      ...data,
+      image: uploadedUrl,
+    };
+
+    try {
+      await dispatch(createCake(cakeData)).unwrap();
+      toast.success("Cake added successfully!");
+      reset(); // clears form fields
+      setValue("cake_type", ""); // reset Select
+      setPreview(null);
+      dispatch(resetImage()); // clears image from slice
+    } catch (err: any) {
+      toast.error(err || "Failed to add cake");
+    }
   };
 
   return (
@@ -81,7 +116,7 @@ export default function AddCake() {
               className="h-11 rounded-xl"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) setPreview(URL.createObjectURL(file));
+                if (file) handleFileChange(file);
               }}
             />
             {preview && (
@@ -93,17 +128,28 @@ export default function AddCake() {
                 className="object-cover rounded-xl"
               />
             )}
+            {uploadStatus === "loading" && (
+              <p className="text-sm text-blue-500">Uploading...</p>
+            )}
+            {uploadStatus === "failed" && (
+              <p className="text-sm text-red-500">Upload failed. Try again.</p>
+            )}
           </div>
 
           {/* Cake Name */}
           <div className="space-y-2">
-            <Label htmlFor="name">Cake Name</Label>
+            <Label htmlFor="cake_name">Cake Name</Label>
             <Input
-              id="name"
-              {...register("name")}
+              id="cake_name"
+              {...register("cake_name")}
               placeholder="Chocolate Delight"
               className="h-11 rounded-xl"
             />
+            {errors.cake_name && (
+              <p className="text-sm text-red-500">
+                {errors.cake_name.message as string}
+              </p>
+            )}
           </div>
 
           {/* Price */}
@@ -112,7 +158,7 @@ export default function AddCake() {
             <Input
               id="price"
               type="number"
-              {...register("price")}
+              {...register("price", { valueAsNumber: true })}
               placeholder="₹500"
               className="h-11 rounded-xl"
             />
@@ -120,8 +166,11 @@ export default function AddCake() {
 
           {/* Cake Type */}
           <div className="space-y-2 overflow-visible">
-            <Label htmlFor="type">Cake Type</Label>
-            <Select {...register("type")}>
+            <Label htmlFor="cake_type">Cake Type</Label>
+            <Select
+              onValueChange={(value) => setValue("cake_type", value)}
+              defaultValue=""
+            >
               <SelectTrigger className="h-15 rounded-xl">
                 <SelectValue placeholder="Select Type" />
               </SelectTrigger>
@@ -157,11 +206,11 @@ export default function AddCake() {
 
           {/* No. of People */}
           <div className="space-y-2">
-            <Label htmlFor="people">Serves (No. of People)</Label>
+            <Label htmlFor="noofpeople">Serves (No. of People)</Label>
             <Input
-              id="people"
+              id="noofpeople"
               type="number"
-              {...register("people")}
+              {...register("noofpeople")}
               placeholder="10"
               className="h-11 rounded-xl"
             />
@@ -183,9 +232,9 @@ export default function AddCake() {
             <Button
               type="submit"
               className="w-full h-11 rounded-xl"
-              disabled={isSubmitting}
+              disabled={loading || uploadStatus === "loading"}
             >
-              {isSubmitting ? "Adding..." : "Add Cake"}
+              {loading ? "Adding..." : "Add Cake"}
             </Button>
           </div>
         </form>

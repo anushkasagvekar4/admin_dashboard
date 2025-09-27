@@ -33,8 +33,10 @@ export default function Signin() {
           router.push("/super_admin/home");
         } else if (res.role === "shop_admin") {
           router.push("/admin/home");
-        } else {
+        } else if (res.role === "customer") {
           router.push("/customer/home");
+        } else {
+          toast.error("Unknown role");
         }
       })
       .catch((err) => {

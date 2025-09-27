@@ -15,6 +15,7 @@ export const signupUser = createAsyncThunk(
   ) => {
     try {
       const res = await api.post("/auth/signup", { email, password, role });
+      console.log("✅ Inserted into DB:", res);
       return res.data; // { success, message, role, token, email }
     } catch (err: any) {
       return rejectWithValue(
@@ -33,6 +34,7 @@ export const signinUser = createAsyncThunk(
   ) => {
     try {
       const res = await api.post("/auth/signin", { email, password });
+      console.log(res);
       return res.data; // { success, message, role, token, email }
     } catch (err: any) {
       return rejectWithValue(

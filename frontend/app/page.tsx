@@ -13,7 +13,7 @@ export default function Home() {
 
   return (
     <div>
-      <Navbar />
+      <Navbar cartCount={0} />
       {/* <SectionHeading /> */}
       <Index />
       {/* <RatingStars /> */}

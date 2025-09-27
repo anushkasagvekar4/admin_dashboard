@@ -9,17 +9,21 @@ import {
   PURGE,
   REGISTER,
 } from "redux-persist";
+import imageUploadReducer from "@/app/features/common/imageUploadSlice";
 
 import authReducer from "@/app/features/auth/authSlice";
 import enquiryReducer from "@/app/features/shop_admin/enquiry/enquirySlice";
 import superAdminReducer from "@/app/features/super_admin/super_admin_enquiry/enquiryUpdateSlice"; // ✅ import
 import shopReducer from "@/app/features/super_admin/super_admin_shops/shopsSlice";
+import cakeReducer from "@/app/features/shop_admin/cakes/cakeSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
   enquiry: enquiryReducer, // ✅ reducer key for shop admin
   superAdmin: superAdminReducer,
-  shops: shopReducer, // ✅ reducer key for super admin
+  shops: shopReducer,
+  imageUpload: imageUploadReducer,
+  cakes: cakeReducer, // ✅ reducer key for super admin
 });
 
 const persistConfig = {
