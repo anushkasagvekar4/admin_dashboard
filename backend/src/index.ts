@@ -27,6 +27,12 @@ app.use("/api/cakes", cakeRouter);
 app.use("/api/shops", shopRouter);
 app.use("/api/enquiry", enquiryRouter);
 // app.use("/api/orders", orderRouter);
+console.log("DB Connection:", {
+  host: process.env.PGHOST,
+  user: process.env.PGUSER,
+  database: process.env.PGDATABASE,
+  port: process.env.PGPORT,
+});
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

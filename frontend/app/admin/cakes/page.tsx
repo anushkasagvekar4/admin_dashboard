@@ -8,9 +8,9 @@ async function getData(): Promise<Cake[]> {
     {
       id: 1,
       image: "image",
-      cake_name: "Truffle Cake",
+      cakeName: "Truffle Cake",
       price: 787,
-      cake_type: "pastry",
+      cakeType: "pastry",
       flavour: "chocolate",
       category: "birthday",
       status: "active",
