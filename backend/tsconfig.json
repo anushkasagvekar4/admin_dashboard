@@ -1,5 +1,4 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
     "rootDir": "./src",
@@ -7,16 +6,15 @@
 
     // Environment Settings
     "module": "commonjs",
-    "target": "es6",
-    "types": [],
+    "target": "ES2020",
 
     // Recommended Options
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
 
-    // Make sure custom types are picked up
-    "typeRoots": ["./src/types", "./node_modules/@types"]
+    // Type Definitions
+    "typeRoots": ["./node_modules/@types"]
   },
-  "include": ["src","src/types"]
+  "include": ["src"]
 }
