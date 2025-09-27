@@ -35,7 +35,7 @@ interface Shop {
   city: string;
   status: "active" | "inactive";
 }
-
+//admin
 export default function AdminShops() {
   const dispatch = useDispatch<AppDispatch>();
   const {
