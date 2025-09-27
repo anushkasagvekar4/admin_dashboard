@@ -35,6 +35,7 @@ export const getCakes = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const res = await api.get("/cakes/getAllCake");
+      console.log(res);
       return res.data; // expected: { success, data }
     } catch (err: any) {
       return rejectWithValue(

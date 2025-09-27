@@ -3,16 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import {
-  Home,
-  ShoppingCart,
-  Truck,
-  User,
-  Cookie,
-  Menu,
-  LogOut,
-  CakeIcon,
-} from "lucide-react";
+import { Home, Cookie, Menu, LogOut, CakeIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,9 +16,13 @@ const nav = [
   { href: "/super_admin/home", label: "Home", icon: Home },
   { href: "/super_admin/enquiries", label: "Enquiries", icon: CakeIcon },
   { href: "/super_admin/shops", label: "Shops", icon: FaShop },
-  // { href: "/customer/tracker", label: "Tracker", icon: Truck },
-  // { href: "/super_admin/all_cakes", label: "Profile", icon: User },
 ];
+
+interface LinkItemProps {
+  href: string;
+  label: string;
+  icon: React.ElementType; // type for a component (like Lucide icons)
+}
 
 export default function Sidebar() {
   const [open, setOpen] = useState(false);
@@ -43,7 +38,13 @@ export default function Sidebar() {
       });
   };
 
-  const LinkItem = ({ href, label, icon: Icon }: any) => {
+  interface LinkItemProps {
+    href: string;
+    label: string;
+    icon: React.ElementType; // type for a component (like Lucide icons)
+  }
+
+  const LinkItem = ({ href, label, icon: Icon }: LinkItemProps) => {
     const isActive = pathname === href;
 
     return (
