@@ -12,9 +12,9 @@ const shopRouter = Router();
 shopRouter.post("/auth/signup ", ensureAuthenticated, signup);
 shopRouter.post("/auth/signin ", ensureAuthenticated, signin);
 
-shopRouter.get("/getShops", ensureAuthenticated, getShops);
+shopRouter.get("/getShops", getShops);
 // Get single shop by ID (super_admin only)
-shopRouter.get("/getShopById/:id", ensureAuthenticated, getShopById);
+shopRouter.get("/getShopById/:id", getShopById);
 
 // Toggle shop active/inactive instead of delete (super_admin only)
 shopRouter.patch(

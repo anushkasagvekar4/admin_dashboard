@@ -40,18 +40,9 @@ export default function EnquiryPage() {
     dispatch(createEnquiry(formData))
       .unwrap()
       .then((res) => {
-        toast.success("Enquiry submitted successfully!", {
-          description: "We will review your enquiry and notify you soon.",
-        });
         dispatch(resetEnquiry());
-        setFormData({
-          shopname: "",
-          ownername: "",
-          email: "",
-          phone: "",
-          address: "",
-          city: "",
-        });
+        // Redirect to thank you page
+        router.push("/auth/enquiry/thank-you");
       })
       .catch((err) => {
         toast.error("Failed to submit enquiry", {
