@@ -11,40 +11,48 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
-// This type is used to define the shape of our data.
-// You can use a Zod schema here if you want.
+
+// Frontend Cake type (camelCase)
 export type Cake = {
-  id: number; // auto-increment in DB
-  image: string; // URL or file path
-  cakeName: string; // camelCase preferred in TS
-  price: number; // decimal/float
-  cakeType: string; // admin can add any type
-  flavour: string; // free text
-  category: string; // admin can add any category
-  status: string; // e.g., "active", "inactive", or any other
-  createdAt?: Date; // optional timestamps
+  id: number;
+  image: string;
+  cakeName: string; // camelCase for frontend
+  price: number;
+  cakeType: string;
+  flavour: string;
+  category: string;
+  status: string;
+  createdAt?: Date;
   updatedAt?: Date;
 };
 
 export const columns: ColumnDef<Cake>[] = [
   {
     accessorKey: "id",
-    header: "id",
+    header: "ID",
   },
   {
     accessorKey: "image",
     header: "Image",
+    cell: ({ row }) => (
+      <img
+        src={row.original.image}
+        alt={row.original.cakeName}
+        className="h-12 w-12 object-cover rounded"
+      />
+    ),
   },
   {
-    accessorKey: "cake_name",
+    accessorKey: "cakeName", // updated to camelCase
     header: "Cake Name",
   },
   {
     accessorKey: "price",
     header: "Price",
+    cell: ({ row }) => `₹${row.original.price}`, // formatted price
   },
   {
-    accessorKey: "cake_type",
+    accessorKey: "cakeType", // camelCase
     header: "Cake Type",
   },
   {
@@ -58,13 +66,21 @@ export const columns: ColumnDef<Cake>[] = [
   {
     accessorKey: "status",
     header: "Status",
+    cell: ({ row }) => (
+      <span
+        className={`px-2 py-1 rounded text-white ${
+          row.original.status === "active" ? "bg-green-500" : "bg-red-500"
+        }`}
+      >
+        {row.original.status}
+      </span>
+    ),
   },
-
   {
     id: "actions",
     header: "Actions",
     cell: ({ row }) => {
-      const payment = row.original;
+      const cake = row.original;
 
       return (
         <DropdownMenu>
@@ -76,13 +92,7 @@ export const columns: ColumnDef<Cake>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            {/* <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(payment.id)}
-            >
-              Copy payment ID
-            </DropdownMenuItem> */}
             <DropdownMenuSeparator />
-            {/* <DropdownMenuItem>View customer</DropdownMenuItem> */}
             <DropdownMenuItem>Edit</DropdownMenuItem>
             <DropdownMenuItem>Delete</DropdownMenuItem>
           </DropdownMenuContent>

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 export interface AuthRequest extends Request {
   user?: {
@@ -13,33 +13,28 @@ const ensureAuthenticated = (
   res: Response,
   next: NextFunction
 ) => {
-  // const token = req.headers.authorization;
+  // ✅ Read token from cookies instead of headers
+  const token = req.cookies?.token;
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ message: "Unauthorized" });
-
-  const token = authHeader.split(" ")[1]; // <-- important!
-
-  // const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
-
-  console.log("Incoming cookies:", req.cookies.token);
-  console.log("Cookies:", req.cookies);
-  console.log("Authorization header:", req.headers.authorization);
+  console.log("🍪 Token from cookies:", token);
 
   if (!token) {
-    return res
-      .status(401)
-      .json({ message: "Unauthorized: JWT token required" });
+    return res.status(401).json({ message: "Unauthorized: No token found" });
   }
+
   try {
+    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY as string) as {
       id: string;
       role: "customer" | "shop_admin" | "super_admin";
     };
+
+    // Attach user to request
     req.user = decoded;
 
     next();
   } catch (error) {
+    console.error("JWT verification error:", error);
     return res
       .status(401)
       .json({ message: "Unauthorized: Invalid or expired token" });

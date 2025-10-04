@@ -1,5 +1,6 @@
 import knex from "../db/knexInstance";
 import { Model } from "objection";
+import { Cake } from "./cake";
 
 export class Shop extends Model {
   id!: string;
@@ -14,6 +15,17 @@ export class Shop extends Model {
   updated_at!: Date;
 
   static tableName = "shops";
+
+  static relationMappings = {
+    cakes: {
+      relation: Model.HasManyRelation,
+      modelClass: Cake,
+      join: {
+        from: "shops.id",
+        to: "cakes.shopId",
+      },
+    },
+  };
 
   static jsonSchema = {
     type: "object",

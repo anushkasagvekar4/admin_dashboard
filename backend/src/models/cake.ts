@@ -1,5 +1,6 @@
 import { Model } from "objection";
 import knex from "../db/knexInstance";
+import { Shop } from "./shop";
 
 export class Cake extends Model {
   id!: string;
@@ -18,9 +19,20 @@ export class Cake extends Model {
 
   static tableName = "cakes";
 
+  static relationMappings = {
+    shop: {
+      relation: Model.BelongsToOneRelation,
+      modelClass: Shop,
+      join: {
+        from: "cakes.shopId",
+        to: "shops.id",
+      },
+    },
+  };
+
   static jsonSchema = {
     type: "object",
-    required: ["image", "cake_name", "price", "shopid"], // 👈 include shop_id
+    required: ["image", "cake_name", "price", "shopId"], // shopId required
     properties: {
       id: { type: "string", format: "uuid" },
       shopId: { type: "string", format: "uuid" },
@@ -31,7 +43,7 @@ export class Cake extends Model {
       flavour: { type: "string", nullable: true },
       category: { type: "string", nullable: true },
       size: { type: "string", nullable: true },
-      noofpeople: { type: "string", nullable: true },
+      noofpeople: { type: "integer", nullable: true }, // 👈 better as integer
       status: {
         type: "string",
         enum: ["active", "inactive"],
@@ -39,8 +51,6 @@ export class Cake extends Model {
       },
       created_at: { type: "string", format: "date-time" },
       updated_at: { type: "string", format: "date-time" },
-
-      // 👇 NEW FIELD in schema
     },
   };
 }

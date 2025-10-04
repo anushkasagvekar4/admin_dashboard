@@ -1,6 +1,20 @@
-// features/shop_admin/cakes/cakeApi.ts
-import api from "@/app/utils/axios";
 import { createAsyncThunk } from "@reduxjs/toolkit";
+import api from "@/app/utils/axios";
+
+// features/shop_admin/cakes/cakeApi.ts
+
+interface BackendCake {
+  id: number;
+  image: string;
+  cake_name: string;
+  price: number;
+  cake_type: string;
+  flavour: string;
+  category: string;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
+}
 
 export interface CakeData {
   image: string;
@@ -29,21 +43,22 @@ export const createCake = createAsyncThunk(
   }
 );
 
-// GET ALL
-export const getCakes = createAsyncThunk(
-  "cakes/getCakes",
-  async (_, { rejectWithValue }) => {
-    try {
-      const res = await api.get("/cakes/getAllCake");
-      console.log(res);
-      return res.data; // expected: { success, data }
-    } catch (err: any) {
-      return rejectWithValue(
-        err.response?.data?.message || "Fetching cakes failed. Try again."
-      );
-    }
+// Example thunk
+export const getCakes = createAsyncThunk<
+  BackendCake[],
+  void,
+  { rejectValue: string }
+>("cakes/getCakes", async (_, { rejectWithValue }) => {
+  try {
+    const res = await api.get("/cakes/getAllCakes");
+    console.log("Raw backend data:", res.data.data);
+    return res.data.data; // backend array
+  } catch (err: any) {
+    return rejectWithValue(
+      err.response?.data?.message || "Fetching cakes failed"
+    );
   }
-);
+});
 
 // GET BY ID
 export const getCakeById = createAsyncThunk(

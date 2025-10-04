@@ -62,9 +62,9 @@ const cakeSlice = createSlice({
     });
     builder.addCase(getCakes.fulfilled, (state, action) => {
       state.loading = false;
-      // expected payload: { success, data }
-      state.cakes = action.payload?.data || [];
+      state.cakes = action.payload || []; // just use action.payload
     });
+
     builder.addCase(getCakes.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload as string;

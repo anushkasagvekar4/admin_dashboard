@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
-import knex from "../db/knexInstance";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { Auth } from "../models/auth";
 
+// -------------------- SIGNUP --------------------
 export const signup = async (req: Request, res: Response) => {
   try {
     const { email, password, role } = req.body;
@@ -20,7 +20,8 @@ export const signup = async (req: Request, res: Response) => {
     if (!allowedRoles.includes(role)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid role. Must be 'customer' or 'shop_admin'",
+        message:
+          "Invalid role. Must be 'customer', 'shop_admin', or 'super_admin'",
       });
     }
 
@@ -35,7 +36,7 @@ export const signup = async (req: Request, res: Response) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert into auth table (Objection will map this)
+    // Insert into auth table
     const newUser = await Auth.query().insertAndFetch({
       email,
       password: hashedPassword,
@@ -49,12 +50,20 @@ export const signup = async (req: Request, res: Response) => {
       { expiresIn: "1h" }
     );
 
+    // Set JWT cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false, // true in production (HTTPS)
+      sameSite: "lax",
+      maxAge: 60 * 60 * 1000, // 1 hour
+      path: "/",
+    });
+
     res.status(201).json({
       success: true,
       message: "Signup successful",
-      role: newUser.role,
-      token,
       email: newUser.email,
+      role: newUser.role,
     });
   } catch (err: any) {
     console.error("Signup error:", err);
@@ -62,6 +71,7 @@ export const signup = async (req: Request, res: Response) => {
   }
 };
 
+// -------------------- SIGNIN --------------------
 export const signin = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -80,7 +90,6 @@ export const signin = async (req: Request, res: Response) => {
         .json({ success: false, message: "Invalid credentials" });
     }
 
-    // Compare hashed password
     const isMatch = await bcrypt.compare(password, authUser.password);
     if (!isMatch) {
       return res
@@ -88,29 +97,27 @@ export const signin = async (req: Request, res: Response) => {
         .json({ success: false, message: "Invalid credentials" });
     }
 
-    // Determine role
-    const role = authUser.role; // should be 'super_admin', 'shop_admin', or 'user'
-
-    // JWT payload
+    // Generate JWT
     const token = jwt.sign(
-      { id: authUser.id, role },
+      { id: authUser.id, role: authUser.role },
       process.env.JWT_SECRET_KEY as string,
       { expiresIn: "1h" }
     );
 
-    // Set cookie
+    // Set JWT cookie
     res.cookie("token", token, {
-      expires: new Date(Date.now() + 3600000),
-      secure: false, // set to true in production with HTTPS
-      sameSite: "lax",
       httpOnly: true,
+      secure: false, // true in production (HTTPS)
+      sameSite: "lax",
+      maxAge: 60 * 60 * 1000, // 1 hour
+      path: "/",
     });
 
     res.status(200).json({
       success: true,
-      message: "Signin successful!",
-      role,
-      token,
+      message: "Signin successful",
+      role: authUser.role,
+      email: authUser.email,
     });
   } catch (err: any) {
     console.error("Signin error:", err);
@@ -118,6 +125,7 @@ export const signin = async (req: Request, res: Response) => {
   }
 };
 
+// -------------------- LOGOUT --------------------
 export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
     res.cookie("token", "", {

@@ -42,13 +42,14 @@ export function DataTable<TData, TValue>({
   return (
     <div className="overflow-hidden rounded-md border">
       <div className="flex items-center py-4">
+        {/* Updated filter to use camelCase column key */}
         <Input
           placeholder="Filter Cake Name..."
           value={
-            (table.getColumn("cake_name")?.getFilterValue() as string) ?? ""
+            (table.getColumn("cakeName")?.getFilterValue() as string) ?? ""
           }
           onChange={(event) =>
-            table.getColumn("cake_name")?.setFilterValue(event.target.value)
+            table.getColumn("cakeName")?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />
@@ -83,18 +84,16 @@ export function DataTable<TData, TValue>({
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                );
-              })}
+              {headerGroup.headers.map((header) => (
+                <TableHead key={header.id}>
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
+                </TableHead>
+              ))}
             </TableRow>
           ))}
         </TableHeader>

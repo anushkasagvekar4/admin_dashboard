@@ -2,14 +2,17 @@ import { Request, Response } from "express";
 import { Cake } from "../models/cake";
 import { AuthRequest } from "../middleware/Auth";
 
-// CREATE Cake (shop_admin only)
-export const createCake = async (req: AuthRequest, res: Response) => {
+export const createCake = async (
+  req: Request & { user?: any },
+  res: Response
+) => {
   try {
-    const { role, id: userId } = req.user!;
-    if (role !== "shop_admin") {
-      return res
-        .status(403)
-        .json({ success: false, message: "Only shop_admins can create cakes" });
+    // Ensure only shop_admin can create
+    if (!req.user || req.user.role !== "shop_admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only shop admins can create cakes",
+      });
     }
 
     const {
@@ -24,6 +27,7 @@ export const createCake = async (req: AuthRequest, res: Response) => {
       status,
     } = req.body;
 
+    // ✅ use shopId from logged-in user (shop admin)
     const newCake = await Cake.query().insertAndFetch({
       image,
       cake_name,
@@ -34,17 +38,20 @@ export const createCake = async (req: AuthRequest, res: Response) => {
       size,
       noofpeople,
       status: status || "active",
-      shopId: userId, // ownership
+      shopId: req.user.id, // 👈 this comes from Shop Admin's id
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Cake created successfully",
       data: newCake,
     });
   } catch (err: any) {
     console.error("Create cake error:", err);
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Something went wrong",
+    });
   }
 };
 

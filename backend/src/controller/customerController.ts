@@ -107,8 +107,6 @@ export const getAllCustomer = async (req: Request, res: Response) => {
   }
 };
 
-// Update Customer Status
-
 // Update Customer Status (Only shop_admin)
 export const updateCustomerStatus = async (req: AuthRequest, res: Response) => {
   try {
