@@ -7,7 +7,7 @@ import { Home, Cookie, Menu, LogOut, CakeIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { FaShop } from "react-icons/fa6";
+import { FaShop, FaUser } from "react-icons/fa6";
 import { useAppDispatch } from "@/app/store/hook";
 import { logoutUser } from "@/app/features/auth/authApi";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,7 @@ const nav = [
   { href: "/super_admin/home", label: "Home", icon: Home },
   { href: "/super_admin/enquiries", label: "Enquiries", icon: CakeIcon },
   { href: "/super_admin/shops", label: "Shops", icon: FaShop },
+  { href: "/super_admin/customers", label: "Customers", icon: FaUser },
 ];
 
 interface LinkItemProps {

@@ -27,10 +27,12 @@ export const columns = ({
   handleView,
   handleEdit,
   handleDelete,
+  handleToggleStatus, // 👈 add this
 }: {
   handleView: (cake: Cake) => void;
   handleEdit: (cake: Cake) => void;
-  handleDelete: (id: number) => void;
+  handleDelete: (id: string) => void;
+  handleToggleStatus: (id: string) => void; // 👈 add this
 }): ColumnDef<Cake>[] => [
   {
     accessorKey: "id",
@@ -100,6 +102,17 @@ export const columns = ({
             <DropdownMenuItem onClick={() => handleEdit(cake)}>
               Edit
             </DropdownMenuItem>
+
+            {/* Toggle Active/Inactive */}
+            <DropdownMenuItem
+              onClick={() => {
+                if (!cake.id) return;
+                handleToggleStatus(cake.id);
+              }}
+            >
+              {cake.status === "active" ? "Deactivate" : "Activate"}
+            </DropdownMenuItem>
+
             <DropdownMenuItem onClick={() => handleDelete(cake.id)}>
               Delete
             </DropdownMenuItem>

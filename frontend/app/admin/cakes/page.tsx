@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from "@/app/store/hook";
 import {
   deleteCake,
   getCakes,
+  toggleCakeStatus,
   updateCake,
 } from "@/app/features/shop_admin/cakes/cakeApi";
 import {
@@ -25,6 +26,7 @@ import {
   uploadImage,
   resetImage,
 } from "@/app/features/common/imageUploadSlice";
+import { number } from "joi";
 
 const CakeList = () => {
   const dispatch = useAppDispatch();
@@ -65,7 +67,17 @@ const CakeList = () => {
 
   const handleSaveEdit = (updatedData: Partial<Cake>) => {
     if (!currentCake) return;
-    dispatch(updateCake({ id: currentCake.id, data: updatedData }));
+
+    // ✅ Force numeric conversion before dispatch
+    const formatted = {
+      ...updatedData,
+      price: Number(updatedData.price),
+    };
+
+    console.log("Sending data:", formatted, typeof formatted.price); // should print 'number'
+
+    dispatch(updateCake({ id: currentCake.id, data: formatted }));
+
     setEditModalOpen(false);
   };
 
@@ -192,7 +204,7 @@ const CakeList = () => {
               {/* Price */}
               <input
                 type="number"
-                value={currentCake.price}
+                defaultValue={currentCake.price}
                 onChange={(e) =>
                   setCurrentCake({
                     ...currentCake,
@@ -235,21 +247,6 @@ const CakeList = () => {
                 className="border p-2 w-full rounded"
                 placeholder="Category"
               />
-
-              {/* Status */}
-              <select
-                value={currentCake.status}
-                onChange={(e) =>
-                  setCurrentCake({
-                    ...currentCake,
-                    status: e.target.value as "active" | "inactive",
-                  })
-                }
-                className="border p-2 w-full rounded"
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
             </div>
           )}
 
@@ -286,6 +283,7 @@ const CakeList = () => {
           handleView,
           handleEdit,
           handleDelete,
+          handleToggleStatus: (id: string) => dispatch(toggleCakeStatus(id)),
         })}
         data={mappedCakes}
       />

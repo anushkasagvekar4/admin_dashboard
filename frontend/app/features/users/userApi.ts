@@ -1,86 +1,120 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import api from "@/app/utils/axios"; // your axios instance
+import api from "@/app/utils/axios";
 
-// 1️⃣ Add User Async Thunk
-export const addUser = createAsyncThunk(
-  "users/add",
-  async (
-    payload: {
-      full_name: string;
-      email: string;
-      address: string;
-      phone: string;
-    },
-    { rejectWithValue }
-  ) => {
+// Backend Customer interface
+interface BackendCustomer {
+  id: string;
+  full_name: string;
+  email: string;
+  address: string;
+  phone: string;
+  status: "active" | "inactive";
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Data sent from frontend
+export interface CustomerData {
+  full_name: string;
+  email: string;
+  address: string;
+  phone: string;
+}
+
+// 🧩 CREATE Customer (for logged-in customer)
+export const createCustomer = createAsyncThunk(
+  "customers/createCustomer",
+  async (data: CustomerData, { rejectWithValue }) => {
     try {
-      // POST request to /api/users
-      const response = await api.post("/customers/createCustomer", payload);
-      // console.log(response);
-      // response.data contains { success, message, data }
-      return response.data;
-    } catch (error: any) {
-      // If backend sends an error, reject with its message
+      const res = await api.post("/customers/createCustomer", data);
+      return res.data.data;
+    } catch (err: any) {
       return rejectWithValue(
-        error.response?.data || { message: "Add user failed" }
+        err.response?.data?.message || "Failed to create customer"
       );
     }
   }
 );
 
-// 2️⃣ View Users (with pagination, search, sort)
+// 🧩 GET ALL Customers
+export const getAllCustomers = createAsyncThunk<
+  BackendCustomer[],
+  void,
+  { rejectValue: string }
+>("customers/getAllCustomers", async (_, { rejectWithValue }) => {
+  try {
+    const res = await api.get("/customers/getAllCustomer");
+    return res.data.data;
+  } catch (err: any) {
+    return rejectWithValue(
+      err.response?.data?.message || "Failed to fetch customers"
+    );
+  }
+});
 
-// 2️⃣ Fetch Users (with pagination, search, sort)
-export const fetchUsers = createAsyncThunk(
-  "users/fetchAll",
-  async (
-    params: {
-      page?: number;
-      limit?: number;
-      search?: string;
-      sortBy?: string;
-      order?: "asc" | "desc";
-    } = {},
-    { rejectWithValue }
-  ) => {
+// 🧩 GET Customer by ID
+export const getCustomerById = createAsyncThunk(
+  "customers/getCustomerById",
+  async (id: string, { rejectWithValue }) => {
     try {
-      const {
-        page = 1,
-        limit = 10,
-        search = "",
-        sortBy = "created_at",
-        order = "desc",
-      } = params;
-
-      const response = await api.get("/customers/getAllCustomer", {
-        params: { page, limit, search, sortBy, order },
-      });
-      // console.log(response);
-      // response.data should have: { succes, message, data, pagination }
-      return response.data;
-    } catch (error: any) {
+      const res = await api.get(`/customers/getCustomerById/${id}`);
+      return res.data.data;
+    } catch (err: any) {
       return rejectWithValue(
-        error.response?.data || { message: "Failed to fetch users" }
+        err.response?.data?.message || "Failed to fetch customer"
       );
     }
   }
 );
 
-export const updateUserStatus = createAsyncThunk(
-  "users/updateStatus",
+// 🧩 UPDATE Customer Profile (only by that customer)
+export const updateCustomer = createAsyncThunk(
+  "customers/updateCustomer",
+  async (
+    { id, data }: { id: string; data: Partial<CustomerData> },
+    { rejectWithValue }
+  ) => {
+    try {
+      const res = await api.patch(`/customers/updateCustomer/${id}`, data);
+      return res.data.data;
+    } catch (err: any) {
+      return rejectWithValue(
+        err.response?.data?.message || "Failed to update customer"
+      );
+    }
+  }
+);
+
+// 🧩 TOGGLE Customer Status (only by shop admin)
+export const updateCustomerStatus = createAsyncThunk(
+  "customers/updateCustomerStatus",
   async (
     { id, status }: { id: string; status: "active" | "inactive" },
     { rejectWithValue }
   ) => {
     try {
-      const response = await api.put(`/customers/updateCustomerStatus/${id}`, {
+      const res = await api.patch(`/customers/updateCustomerStatus/${id}`, {
         status,
       });
-      // backend returns { success, message }
-      return { id, status, ...response.data }; // include updated status + id
-    } catch (error: any) {
+      return res.data.data;
+    } catch (err: any) {
       return rejectWithValue(
-        error.response?.data || { message: "Update user status failed" }
+        err.response?.data?.message || "Failed to update status"
+      );
+    }
+  }
+);
+
+// ❌ DELETE (not implemented in backend)
+export const deleteCustomer = createAsyncThunk<string, string>(
+  "customers/deleteCustomer",
+  async (id, { rejectWithValue }) => {
+    try {
+      // No backend route available for deletion
+      return rejectWithValue("Delete customer API not implemented");
+    } catch (err: any) {
+      return rejectWithValue(
+        err.response?.data?.message || "Delete customer failed"
       );
     }
   }
