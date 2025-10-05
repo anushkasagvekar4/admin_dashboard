@@ -1,35 +1,58 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Home,
   ShoppingCart,
-  Truck,
+  CakeIcon,
   User,
   Cookie,
   Menu,
   LogOut,
-  CakeIcon,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState, AppDispatch } from "@/app/store/Store";
+import { logoutUser } from "@/app/features/auth/authApi";
 
-const nav = [
-  { href: "/customer/home", label: "Home", icon: Home },
-  { href: "/customer/cart", label: "Cart", icon: ShoppingCart },
-  { href: "/customer/orders", label: "Order", icon: CakeIcon },
-  // { href: "/customer/tracker", label: "Tracker", icon: Truck },
-  { href: "/customer/profile", label: "Profile", icon: User },
-];
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
 
 export default function Sidebar() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
 
-  const LinkItem = ({ href, label, icon: Icon }: any) => {
+  // ✅ get logged-in user from Redux store
+  const { user, loading } = useSelector((state: RootState) => state.auth);
+
+  // ✅ build nav dynamically *after* user is available
+  const nav: NavItem[] = [
+    { href: "/customer/home", label: "Home", icon: Home },
+    { href: "/customer/cart", label: "Cart", icon: ShoppingCart },
+    { href: "/customer/orders", label: "Order", icon: CakeIcon },
+    {
+      // Using only /customer/profile as the profile page will fetch user data
+      href: "/customer/profile",
+      label: "Profile",
+      icon: User,
+    },
+  ];
+
+  const handleLogout = () => {
+    dispatch(logoutUser());
+    router.push("/auth/signin");
+  };
+  
+  const LinkItem = ({ href, label, icon: Icon }: NavItem) => {
     const isActive = pathname === href;
 
     return (
@@ -71,6 +94,7 @@ export default function Sidebar() {
             <Button
               variant="ghost"
               className="w-full justify-start text-destructive hover:bg-destructive/10"
+              onClick={handleLogout}
             >
               <LogOut className="w-5 h-5 mr-2" /> Logout
             </Button>
