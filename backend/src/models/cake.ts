@@ -12,7 +12,7 @@ export class Cake extends Model {
   flavour?: string;
   category?: string;
   size?: string;
-  noofpeople?: string;
+  noofpeople?: number;
   status!: "active" | "inactive";
   created_at!: Date;
   updated_at!: Date;

@@ -62,7 +62,7 @@ const cakeSlice = createSlice({
     });
     builder.addCase(getCakes.fulfilled, (state, action) => {
       state.loading = false;
-      state.cakes = action.payload || []; // just use action.payload
+      state.cakes = action.payload; // payload is already BackendCake[]
     });
 
     builder.addCase(getCakes.rejected, (state, action) => {
@@ -77,8 +77,9 @@ const cakeSlice = createSlice({
     });
     builder.addCase(getCakeById.fulfilled, (state, action) => {
       state.loading = false;
-      state.selectedCake = action.payload?.data || null;
+      state.selectedCake = action.payload || null; // use payload directly
     });
+
     builder.addCase(getCakeById.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload as string;
@@ -91,7 +92,7 @@ const cakeSlice = createSlice({
     });
     builder.addCase(updateCake.fulfilled, (state, action) => {
       state.loading = false;
-      const updated = action.payload?.data;
+      const updated = action.payload; // payload is the updated cake object
       if (updated) {
         state.cakes = state.cakes.map((c) =>
           c.id === updated.id ? updated : c
@@ -99,6 +100,7 @@ const cakeSlice = createSlice({
         if (state.selectedCake?.id === updated.id) state.selectedCake = updated;
       }
     });
+
     builder.addCase(updateCake.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload as string;
@@ -111,11 +113,11 @@ const cakeSlice = createSlice({
     });
     builder.addCase(deleteCake.fulfilled, (state, action) => {
       state.loading = false;
-      // action.meta.arg is the id passed to thunk
-      const deletedId = action.meta.arg as string;
+      const deletedId = action.payload as string; // deleted cake id from payload
       state.cakes = state.cakes.filter((c) => c.id !== deletedId);
       if (state.selectedCake?.id === deletedId) state.selectedCake = null;
     });
+
     builder.addCase(deleteCake.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload as string;

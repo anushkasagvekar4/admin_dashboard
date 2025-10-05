@@ -24,7 +24,7 @@ export interface CakeData {
   flavour?: string;
   category?: string;
   size?: string;
-  noofpeople?: string;
+  noofpeople?: number;
   status?: "active" | "inactive";
 }
 
@@ -63,10 +63,10 @@ export const getCakes = createAsyncThunk<
 // GET BY ID
 export const getCakeById = createAsyncThunk(
   "cakes/getCakeById",
-  async (id: string, { rejectWithValue }) => {
+  async (id: string | number, { rejectWithValue }) => {
     try {
       const res = await api.get(`/cakes/getCakeById/${id}`);
-      return res.data; // expected: { success, data }
+      return res.data; // { success, data }
     } catch (err: any) {
       return rejectWithValue(
         err.response?.data?.message || "Fetching cake failed. Try again."
@@ -83,8 +83,8 @@ export const updateCake = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const res = await api.put(`/cakes/updateCake/${id}`, data);
-      return res.data; // expected: { success, message, data }
+      const res = await api.patch(`/cakes/updateCake/${id}`, data);
+      return res.data; // { success, data, message }
     } catch (err: any) {
       return rejectWithValue(
         err.response?.data?.message || "Update cake failed. Try again."
@@ -99,7 +99,7 @@ export const deleteCake = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       const res = await api.delete(`/cakes/deleteCake/${id}`);
-      return res.data; // expected: { success, message }
+      return res.data; // { success, message }
     } catch (err: any) {
       return rejectWithValue(
         err.response?.data?.message || "Delete cake failed. Try again."

@@ -33,7 +33,7 @@ interface CakeForm {
   cake_type?: string;
   flavour?: string;
   category?: string;
-  noofpeople?: string;
+  noofpeople?: number;
   size?: string;
 }
 
@@ -60,7 +60,7 @@ export default function AddCake() {
       cake_type: "",
       flavour: "",
       category: "",
-      noofpeople: "",
+      noofpeople: 0,
       size: "",
     },
   });
@@ -211,7 +211,6 @@ export default function AddCake() {
               id="noofpeople"
               type="number"
               {...register("noofpeople")}
-              placeholder="10"
               className="h-11 rounded-xl"
             />
           </div>
