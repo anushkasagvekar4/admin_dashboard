@@ -1,17 +1,11 @@
-import { Response } from "express";
+import { RequestHandler, Response } from "express";
 import { Shop } from "../models/shop";
 import { AuthRequest } from "../middleware/Auth";
 
 // Get all approved shops
 
-export const getShops = async (req: AuthRequest, res: Response) => {
+export const getShops: RequestHandler = async (req, res) => {
   try {
-    if (req.user?.role !== "super_admin") {
-      return res
-        .status(403)
-        .json({ success: false, message: "Only super_admins can view shops" });
-    }
-
     // ✅ Query params
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -19,10 +13,8 @@ export const getShops = async (req: AuthRequest, res: Response) => {
     const sortBy = (req.query.sortBy as string) || "created_at";
     const sortOrder = (req.query.sortOrder as string) || "desc";
 
-    // ✅ Build query
     let query = Shop.query();
 
-    // Searching across multiple fields
     if (search) {
       query = query.where((builder) => {
         builder
@@ -43,7 +35,6 @@ export const getShops = async (req: AuthRequest, res: Response) => {
 
     query = query.orderBy(sortBy, safeSortOrder);
 
-    // Pagination
     const offset = (page - 1) * limit;
     const [data, total] = await Promise.all([
       query.clone().limit(limit).offset(offset),

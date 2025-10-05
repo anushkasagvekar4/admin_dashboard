@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createCustomer,
   getAllCustomer,
+  getCustomerById,
   updateCustomer,
   updateCustomerStatus,
 } from "../controller/customerController";
@@ -21,6 +22,11 @@ customerRouter.patch(
   "/updateCustomer/:id",
   ensureAuthenticated,
   updateCustomer
+);
+customerRouter.get(
+  "/getCustomerById/:id",
+  ensureAuthenticated,
+  getCustomerById
 );
 customerRouter.get("/getAllCustomer", ensureAuthenticated, getAllCustomer);
 

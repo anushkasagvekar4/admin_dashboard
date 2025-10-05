@@ -16,6 +16,7 @@ import enquiryReducer from "@/app/features/shop_admin/enquiry/enquirySlice";
 import superAdminReducer from "@/app/features/super_admin/super_admin_enquiry/enquiryUpdateSlice"; // ✅ import
 import shopReducer from "@/app/features/super_admin/super_admin_shops/shopsSlice";
 import cakeReducer from "@/app/features/shop_admin/cakes/cakeSlice";
+import customerReducer from "@/app/features/users/userSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -24,12 +25,13 @@ const rootReducer = combineReducers({
   shops: shopReducer,
   imageUpload: imageUploadReducer,
   cakes: cakeReducer, // ✅ reducer key for super admin
+  customers: customerReducer,
 });
 
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["auth", "enquiry"],
+  whitelist: ["auth", "enquiry", "user"],
   // 👆 keep only auth + enquiry persisted.
   // superAdmin state will reset on refresh (good for lists).
 };

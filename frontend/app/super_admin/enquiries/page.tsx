@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner";
 import { RootState, AppDispatch } from "@/app/store/Store";
 import {
   fetchEnquiries,
@@ -89,7 +90,20 @@ export default function AdminEnquiries() {
                     <div className="flex flex-wrap gap-2">
                       <Button
                         size="sm"
-                        onClick={() => dispatch(approveEnquiry(e.id))}
+                        onClick={() => {
+                          dispatch(approveEnquiry(e.id))
+                            .unwrap()
+                            .then(() => {
+                              toast.success("Enquiry approved successfully!", {
+                                description: `${e.ownername} can now enjoy selling cakes and start their business on CakeHaven!`,
+                              });
+                            })
+                            .catch((err) => {
+                              toast.error("Failed to approve enquiry", {
+                                description: err || "Something went wrong",
+                              });
+                            });
+                        }}
                         disabled={e.status !== "pending"}
                       >
                         Approve

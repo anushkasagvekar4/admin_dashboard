@@ -6,10 +6,11 @@ import {
   getCakeById,
   updateCake,
   deleteCake,
+  toggleCakeStatus, // new soft delete / active-inactive toggle
 } from "./cakeApi";
 
 interface CakeState {
-  cakes: any[]; // replace `any` with a proper Cake type if you want
+  cakes: any[]; // replace `any` with proper Cake type if needed
   selectedCake: any | null;
   loading: boolean;
   error: string | null;
@@ -47,7 +48,6 @@ const cakeSlice = createSlice({
     });
     builder.addCase(createCake.fulfilled, (state, action) => {
       state.loading = false;
-      // backend expected to return { success, message, data }
       if (action.payload?.data) state.cakes.push(action.payload.data);
     });
     builder.addCase(createCake.rejected, (state, action) => {
@@ -62,8 +62,7 @@ const cakeSlice = createSlice({
     });
     builder.addCase(getCakes.fulfilled, (state, action) => {
       state.loading = false;
-      // expected payload: { success, data }
-      state.cakes = action.payload?.data || [];
+      state.cakes = action.payload;
     });
     builder.addCase(getCakes.rejected, (state, action) => {
       state.loading = false;
@@ -77,7 +76,7 @@ const cakeSlice = createSlice({
     });
     builder.addCase(getCakeById.fulfilled, (state, action) => {
       state.loading = false;
-      state.selectedCake = action.payload?.data || null;
+      state.selectedCake = action.payload || null;
     });
     builder.addCase(getCakeById.rejected, (state, action) => {
       state.loading = false;
@@ -91,7 +90,7 @@ const cakeSlice = createSlice({
     });
     builder.addCase(updateCake.fulfilled, (state, action) => {
       state.loading = false;
-      const updated = action.payload?.data;
+      const updated = action.payload;
       if (updated) {
         state.cakes = state.cakes.map((c) =>
           c.id === updated.id ? updated : c
@@ -104,19 +103,39 @@ const cakeSlice = createSlice({
       state.error = action.payload as string;
     });
 
-    // DELETE
+    // DELETE (hard delete)
     builder.addCase(deleteCake.pending, (state) => {
       state.loading = true;
       state.error = null;
     });
     builder.addCase(deleteCake.fulfilled, (state, action) => {
       state.loading = false;
-      // action.meta.arg is the id passed to thunk
-      const deletedId = action.meta.arg as string;
+      const deletedId = action.payload; // payload is already the id string
       state.cakes = state.cakes.filter((c) => c.id !== deletedId);
       if (state.selectedCake?.id === deletedId) state.selectedCake = null;
     });
+
     builder.addCase(deleteCake.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload as string;
+    });
+
+    // TOGGLE STATUS (soft delete / activate-deactivate)
+    builder.addCase(toggleCakeStatus.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(toggleCakeStatus.fulfilled, (state, action) => {
+      state.loading = false;
+      const updated = action.payload;
+      if (updated) {
+        state.cakes = state.cakes.map((c) =>
+          c.id === updated.id ? updated : c
+        );
+        if (state.selectedCake?.id === updated.id) state.selectedCake = updated;
+      }
+    });
+    builder.addCase(toggleCakeStatus.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload as string;
     });

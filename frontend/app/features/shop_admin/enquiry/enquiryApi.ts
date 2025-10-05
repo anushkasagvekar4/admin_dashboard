@@ -18,3 +18,13 @@ export const createEnquiryAPI = async (data: EnquiryData) => {
     throw new Error(err.response?.data?.message || "Failed to create enquiry");
   }
 };
+
+// Check current user's enquiry status
+export const checkUserEnquiryStatusAPI = async () => {
+  try {
+    const response = await api.get("/enquiry/checkUserEnquiryStatus");
+    return response.data; // { success, data: { hasEnquiry, status, enquiry } }
+  } catch (err: any) {
+    throw new Error(err.response?.data?.message || "Failed to check enquiry status");
+  }
+};

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Mail, Lock } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/app/store/hook";
 import { signinUser } from "@/app/features/auth/authApi"; // 👈 make sure you have this
+import { checkUserEnquiryStatus } from "@/app/features/shop_admin/enquiry/enquirySlice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,12 +19,38 @@ export default function Signin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // Helper function to handle shop admin redirect based on enquiry status
+  const handleShopAdminRedirect = async () => {
+    try {
+      const enquiryStatusResult = await dispatch(checkUserEnquiryStatus()).unwrap();
+      
+      if (!enquiryStatusResult.hasEnquiry) {
+        // No enquiry submitted, redirect to enquiry form
+        router.push("/auth/enquiry");
+      } else if (enquiryStatusResult.status === "pending") {
+        // Enquiry pending, redirect to status page
+        router.push("/admin/enquiry-status");
+      } else if (enquiryStatusResult.status === "approved") {
+        // Enquiry approved, check if this is first login after approval
+        // For now, redirect to welcome page to show the success message
+        router.push("/admin/welcome");
+      } else if (enquiryStatusResult.status === "rejected") {
+        // Enquiry rejected, redirect to enquiry form to resubmit
+        router.push("/auth/enquiry");
+      }
+    } catch (error) {
+      console.error("Failed to check enquiry status:", error);
+      // Fallback to enquiry form if status check fails
+      router.push("/auth/enquiry");
+    }
+  };
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     dispatch(signinUser({ email, password }))
       .unwrap()
-      .then((res) => {
+      .then(async (res) => {
         toast.success("Signed in successfully!", {
           description: `Welcome back, ${res.email}!`,
         });
@@ -32,7 +59,8 @@ export default function Signin() {
         if (res.role === "super_admin") {
           router.push("/super_admin/home");
         } else if (res.role === "shop_admin") {
-          router.push("/admin/home");
+          // Check enquiry status for shop admin
+          await handleShopAdminRedirect();
         } else if (res.role === "customer") {
           router.push("/customer/home");
         } else {
