@@ -1,11 +1,12 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import {
   createCustomer,
-  deleteCustomer,
   getAllCustomers,
   getCustomerById,
+  getMyCustomer,
   updateCustomer,
   updateCustomerStatus,
+  updateMyCustomer,
 } from "./userApi";
 
 // Backend Customer interface
@@ -167,28 +168,50 @@ const customerSlice = createSlice({
       }
     );
 
-    // ❌ DELETE (not implemented in backend)
-    builder.addCase(deleteCustomer.pending, (state) => {
+    // 🧩 GET MY PROFILE
+    builder.addCase(getMyCustomer.pending, (state) => {
       state.loading = true;
       state.error = null;
     });
     builder.addCase(
-      deleteCustomer.fulfilled,
-      (state, action: PayloadAction<string>) => {
+      getMyCustomer.fulfilled,
+      (state, action: PayloadAction<BackendCustomer>) => {
         state.loading = false;
-        state.customers = state.customers.filter(
-          (c) => c.id !== action.payload
-        );
-        if (state.selectedCustomer?.id === action.payload)
-          state.selectedCustomer = null;
+        state.selectedCustomer = action.payload;
       }
     );
     builder.addCase(
-      deleteCustomer.rejected,
+      getMyCustomer.rejected,
       (state, action: PayloadAction<any>) => {
         state.loading = false;
-        state.error =
-          action.payload || "Delete operation not supported by backend";
+        state.error = action.payload || "Failed to fetch my profile";
+      }
+    );
+
+    // 🧩 UPDATE MY PROFILE
+    builder.addCase(updateMyCustomer.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(
+      updateMyCustomer.fulfilled,
+      (state, action: PayloadAction<BackendCustomer>) => {
+        state.loading = false;
+        const updated = action.payload;
+        if (updated) {
+          state.selectedCustomer = updated;
+          // Optional: update in global list if it exists
+          state.customers = state.customers.map((c) =>
+            c.id === updated.id ? updated : c
+          );
+        }
+      }
+    );
+    builder.addCase(
+      updateMyCustomer.rejected,
+      (state, action: PayloadAction<any>) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to update my profile";
       }
     );
   },

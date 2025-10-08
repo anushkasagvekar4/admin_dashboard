@@ -9,7 +9,7 @@ import { getAllCustomers } from "@/app/features/users/userApi";
 
 interface Customer {
   id: string;
-  full_name: string;
+  fullName: string;
   email: string;
   phone?: string;
   address?: string;
@@ -28,15 +28,31 @@ export default function CustomersPage() {
 
   // Fetch all customers on mount
   useEffect(() => {
-    dispatch(getAllCustomers());
+    console.log("🔍 Dispatching getAllCustomers...");
+    dispatch(getAllCustomers())
+      .unwrap()
+      .then((data) => {
+        console.log("✅ getAllCustomers success:", data);
+      })
+      .catch((error) => {
+        console.error("❌ getAllCustomers error:", error);
+      });
   }, [dispatch]);
 
-  // Show error toast
+  // Show error toast and debug state
   useEffect(() => {
+    console.log("📊 Customers state:", { customers, loading, error });
     if (error) toast.error(error);
-  }, [error]);
+  }, [customers, loading, error]);
+
+  console.log("🎯 Render state:", {
+    loading,
+    customersLength: customers.length,
+    error,
+  });
 
   if (loading) return <p>Loading customers...</p>;
+  if (error) return <p className="text-red-500">Error: {error}</p>;
   if (!customers.length) return <p>No customers found.</p>;
 
   return (
@@ -57,7 +73,7 @@ export default function CustomersPage() {
         <tbody>
           {customers.map((customer: Customer) => (
             <tr key={customer.id} className="border-t">
-              <td className="p-3">{customer.full_name}</td>
+              <td className="p-3">{customer.fullName}</td>
               <td className="p-3">{customer.email}</td>
               <td className="p-3">{customer.phone || "-"}</td>
               <td className="p-3">{customer.address || "-"}</td>
@@ -78,7 +94,7 @@ export default function CustomersPage() {
           <div className="bg-white p-6 rounded-xl shadow-lg w-96 relative">
             <h2 className="text-xl font-bold mb-4">Customer Details</h2>
             <p>
-              <strong>Name:</strong> {selectedCustomer.full_name}
+              <strong>Name:</strong> {selectedCustomer.fullName}
             </p>
             <p>
               <strong>Email:</strong> {selectedCustomer.email}

@@ -7,40 +7,94 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import {
+  createCustomer,
+  getMyCustomer,
+  updateMyCustomer,
+} from "@/app/features/users/userApi";
 
 export default function CustomerProfile() {
   const dispatch = useDispatch<AppDispatch>();
-  const { user, loading } = useSelector((state: RootState) => state.auth);
+  const { user, token, role, loading } = useSelector(
+    (state: RootState) => state.auth
+  );
 
+  const [customerId, setCustomerId] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(user || ""); // ✅ set from Redux auth.user
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      // Initialize with user data from auth state
-      setEmail(user || "");
-      // You would typically fetch full user profile data here
-      // For now, we'll use the email from auth state
-    }
-  }, [user]);
+    const fetchProfile = async () => {
+      if (!token || role !== "customer") return;
 
+      try {
+        setIsLoading(true);
+        const res = await dispatch(getMyCustomer()).unwrap();
+
+        if (res) {
+          const c = res;
+          console.log("Customer:", c);
+
+          setCustomerId(c.id);
+          setFullName(c.full_name || "");
+          // ✅ Always prefer customer email, else fallback to logged-in user's email
+          setEmail(c.email || user || "");
+          setPhone(c.phone || "");
+          setAddress(c.address || "");
+        } else {
+          setEmail(user || "");
+        }
+      } catch (err) {
+        console.log("Error fetching profile:", err);
+        setEmail(user || "");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [dispatch, token, user, role]);
+
+  // ✅ Handle Save (create or update)
   const onSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    if (!fullName || !phone || !address) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    // ✅ Ensure email always comes from Redux, never blank
+    const payload = {
+      full_name: fullName,
+      email: user || email,
+      phone,
+      address,
+    };
+
+    console.log("👉 Sending payload:", payload);
+
     try {
-      // Here you would dispatch an action to update the user profile
-      // For now, we'll just show a success message
-      toast.success("Profile updated successfully", {
-        description: "Your changes have been saved.",
-      });
+      setIsLoading(true);
+      if (customerId) {
+        await dispatch(updateMyCustomer(payload)).unwrap();
+        toast.success("Profile updated successfully");
+      } else {
+        await dispatch(createCustomer(payload)).unwrap();
+        toast.success("Profile created successfully");
+      }
     } catch (err: any) {
-      toast.error(err || "Failed to update profile");
+      console.error("Error saving profile:", err);
+      toast.error(err?.message || "Failed to save profile");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (loading) return <p>Loading profile...</p>;
+  if (loading || isLoading) return <p>Loading profile...</p>;
   if (!user) return <p>Please log in to view your profile.</p>;
 
   return (
@@ -68,9 +122,8 @@ export default function CustomerProfile() {
             id="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="h-12 rounded-lg border-gray-300"
-            disabled
+            readOnly
+            className="h-12 rounded-lg border-gray-300 bg-gray-100 text-gray-600"
           />
         </div>
 
@@ -99,9 +152,9 @@ export default function CustomerProfile() {
         <Button
           type="submit"
           className="h-12 w-fit px-6 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-          disabled={loading}
+          disabled={isLoading}
         >
-          Save Changes
+          {customerId ? "Update Profile" : "Create Profile"}
         </Button>
       </form>
     </div>
