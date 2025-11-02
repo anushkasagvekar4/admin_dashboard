@@ -59,8 +59,8 @@ export default function CustomersPage() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">All Customers</h1>
 
-      <table className="min-w-full border border-gray-200 rounded-lg overflow-hidden">
-        <thead className="bg-gray-100">
+      <table className="min-w-full border border-red-200 rounded-lg overflow-hidden">
+        <thead className="bg-red-100">
           <tr>
             <th className="p-3 text-left">Name</th>
             <th className="p-3 text-left">Email</th>
@@ -90,8 +90,8 @@ export default function CustomersPage() {
 
       {/* Modal */}
       {selectedCustomer && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-lg w-96 relative">
+        <div className="fixed inset-0 bg-transparent bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-red-100 p-6 rounded-xl shadow-lg w-96 relative">
             <h2 className="text-xl font-bold mb-4">Customer Details</h2>
             <p>
               <strong>Name:</strong> {selectedCustomer.fullName}

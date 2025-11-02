@@ -8,6 +8,7 @@ export interface AuthRequest extends Request {
   };
 }
 
+// Use the normal Request type; your global augmentation adds `user` automatically
 const ensureAuthenticated = (
   req: AuthRequest,
   res: Response,
@@ -15,8 +16,6 @@ const ensureAuthenticated = (
 ) => {
   // ✅ Read token from cookies instead of headers
   const token = req.cookies?.token;
-
-  console.log("🍪 Token from cookies:", token);
 
   if (!token) {
     return res.status(401).json({ message: "Unauthorized: No token found" });
@@ -29,7 +28,7 @@ const ensureAuthenticated = (
       role: "customer" | "shop_admin" | "super_admin";
     };
 
-    // Attach user to request
+    // Attach user to request (now valid because of global type)
     req.user = decoded;
 
     next();

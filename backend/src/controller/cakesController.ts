@@ -2,12 +2,12 @@ import { Request, Response } from "express";
 import { Cake } from "../models/cake";
 import { AuthRequest } from "../middleware/Auth";
 
+// ====================== CREATE CAKE ======================
 export const createCake = async (
   req: Request & { user?: any },
   res: Response
 ) => {
   try {
-    // Ensure only shop_admin can create
     if (!req.user || req.user.role !== "shop_admin") {
       return res.status(403).json({
         success: false,
@@ -16,7 +16,7 @@ export const createCake = async (
     }
 
     const {
-      image,
+      images,
       cake_name,
       price,
       cake_type,
@@ -26,10 +26,17 @@ export const createCake = async (
       noofpeople,
       status,
     } = req.body;
+    console.log(req.body);
 
-    // ✅ use shopId from logged-in user (shop admin)
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one image is required",
+      });
+    }
+
     const newCake = await Cake.query().insertAndFetch({
-      image,
+      images, // ✅ multiple image URLs
       cake_name,
       price,
       cake_type,
@@ -38,7 +45,7 @@ export const createCake = async (
       size,
       noofpeople,
       status: status || "active",
-      shopId: req.user.id, // 👈 this comes from Shop Admin's id
+      shopId: req.user.id,
     });
 
     return res.status(201).json({
@@ -55,19 +62,10 @@ export const createCake = async (
   }
 };
 
-export const getAllCakes = async (req: AuthRequest, res: Response) => {
+// ====================== GET ALL CAKES ======================
+export const getAllCakes = async (req: Request, res: Response) => {
   try {
-    const user = req.user!;
-
-    let cakes;
-
-    if (user.role === "shop_admin") {
-      // Show all cakes for this shop admin (active + inactive)
-      cakes = await Cake.query().where("shopId", user.id);
-    } else {
-      // Customers or other roles: show all cakes (frontend will mark inactive as unavailable)
-      cakes = await Cake.query();
-    }
+    const cakes = await Cake.query();
 
     res.status(200).json({ success: true, data: cakes });
   } catch (err: any) {
@@ -76,7 +74,7 @@ export const getAllCakes = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// READ single cake
+// ====================== GET SINGLE CAKE ======================
 export const getCakeById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -93,6 +91,7 @@ export const getCakeById = async (req: Request, res: Response) => {
   }
 };
 
+// ====================== UPDATE CAKE ======================
 export const updateCake = async (req: AuthRequest, res: Response) => {
   try {
     const { role, id: userId } = req.user!;
@@ -115,14 +114,36 @@ export const updateCake = async (req: AuthRequest, res: Response) => {
         message: "Not authorized to update this cake",
       });
 
-    // Prevent editing inactive cakes
     if (cake.status === "inactive") {
       return res
         .status(400)
         .json({ success: false, message: "Cannot edit inactive cake" });
     }
 
-    const updatedCake = await Cake.query().patchAndFetchById(id, req.body);
+    const {
+      images, // ✅ multiple image URLs allowed
+      cake_name,
+      price,
+      cake_type,
+      flavour,
+      category,
+      size,
+      noofpeople,
+      status,
+    } = req.body;
+
+    const updatedCake = await Cake.query().patchAndFetchById(id, {
+      ...(images && Array.isArray(images) ? { images } : {}), // ✅ only update if provided
+      cake_name,
+      price,
+      cake_type,
+      flavour,
+      category,
+      size,
+      noofpeople,
+      status,
+    });
+
     res.status(200).json({
       success: true,
       message: "Cake updated successfully",
@@ -134,45 +155,30 @@ export const updateCake = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// DELETE Cake (only owner shop_admin)
+// ====================== DELETE CAKE ======================
 export const deleteCake = async (req: AuthRequest, res: Response) => {
   try {
     const { role, id: userId } = req.user!;
-    console.log("[DELETE] User info:", req.user);
-
     if (role !== "shop_admin") {
-      console.log("[DELETE] Forbidden: user is not shop_admin");
       return res
         .status(403)
         .json({ success: false, message: "Only shop_admins can delete cakes" });
     }
 
     const { id } = req.params;
-    console.log("[DELETE] Cake ID to delete:", id);
-
     const cake = await Cake.query().findById(id);
-    console.log("[DELETE] Fetched cake:", cake);
 
-    if (!cake) {
-      console.log("[DELETE] Cake not found");
+    if (!cake)
       return res
         .status(404)
         .json({ success: false, message: "Cake not found" });
-    }
-
-    if (cake.shopId !== userId) {
-      console.log(
-        `[DELETE] Not authorized: cake.shopId (${cake.shopId}) !== userId (${userId})`
-      );
+    if (cake.shopId !== userId)
       return res.status(403).json({
         success: false,
         message: "Not authorized to delete this cake",
       });
-    }
 
     await Cake.query().deleteById(id);
-    console.log("[DELETE] Cake deleted:", id);
-
     res
       .status(200)
       .json({ success: true, message: "Cake deleted successfully" });
@@ -182,7 +188,7 @@ export const deleteCake = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Toggle inactive (soft delete)
+// ====================== TOGGLE STATUS ======================
 export const toggleCakeStatus = async (req: AuthRequest, res: Response) => {
   try {
     const { role, id: userId } = req.user!;
@@ -206,7 +212,6 @@ export const toggleCakeStatus = async (req: AuthRequest, res: Response) => {
         message: "Not authorized to toggle this cake",
       });
 
-    // Toggle status
     const newStatus = cake.status === "active" ? "inactive" : "active";
     const updatedCake = await Cake.query().patchAndFetchById(id, {
       status: newStatus,

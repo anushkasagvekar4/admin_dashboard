@@ -2,13 +2,9 @@ import { Request, Response } from "express";
 import { Customer } from "../models/customer";
 import { AuthRequest } from "../middleware/Auth";
 
-/**
- * 🧱 Create Customer Profile
- * - Called when a customer fills their profile for the first time
- */
 export const createCustomer = async (req: AuthRequest, res: Response) => {
   try {
-    console.log("👉 Received payload:", req.body); // ✅ add this
+    console.log("👉 Received payload:", req.body);
 
     if (!req.user || req.user.role !== "customer") {
       return res
@@ -20,7 +16,7 @@ export const createCustomer = async (req: AuthRequest, res: Response) => {
 
     // Check if already exists
     const existing = await Customer.query()
-      .where("auth_id", req.user.id)
+      .where("auth_id", req.user!.id)
       .first();
 
     if (existing) {
@@ -31,7 +27,7 @@ export const createCustomer = async (req: AuthRequest, res: Response) => {
     }
 
     const customer = await Customer.query().insert({
-      auth_id: req.user.id,
+      auth_id: req.user!.id,
       full_name,
       email,
       phone,
@@ -203,7 +199,7 @@ export const getMyCustomer = async (req: AuthRequest, res: Response) => {
     }
 
     const customer = await Customer.query()
-      .where("auth_id", req.user.id)
+      .where("auth_id", req.user!.id)
       .first();
 
     if (!customer) {
@@ -240,7 +236,7 @@ export const updateMyCustomer = async (req: AuthRequest, res: Response) => {
     const { full_name, email, phone, address } = req.body;
 
     const existing = await Customer.query()
-      .where("auth_id", req.user.id)
+      .where("auth_id", req.user!.id)
       .first();
 
     if (!existing) {

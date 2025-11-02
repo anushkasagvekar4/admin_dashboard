@@ -1,5 +1,6 @@
 import { Model } from "objection";
 import { Auth } from "./auth";
+import knex from "../db/knexInstance";
 export class Customer extends Model {
   id!: string;
   auth_id!: string;
@@ -38,3 +39,5 @@ export class Customer extends Model {
     },
   };
 }
+
+Customer.knex(knex);

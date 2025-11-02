@@ -25,6 +25,8 @@ export const checkUserEnquiryStatusAPI = async () => {
     const response = await api.get("/enquiry/checkUserEnquiryStatus");
     return response.data; // { success, data: { hasEnquiry, status, enquiry } }
   } catch (err: any) {
-    throw new Error(err.response?.data?.message || "Failed to check enquiry status");
+    throw new Error(
+      err.response?.data?.message || "Failed to check enquiry status"
+    );
   }
 };

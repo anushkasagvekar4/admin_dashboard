@@ -1,7 +1,7 @@
 import { Model } from "objection";
 import { Order } from "./orders";
 import { Cake } from "./cake";
-
+import knex from "../db/knexInstance";
 export class OrderItem extends Model {
   id!: string;
   order_id!: string;
@@ -46,3 +46,5 @@ export class OrderItem extends Model {
     },
   };
 }
+
+OrderItem.knex(knex);

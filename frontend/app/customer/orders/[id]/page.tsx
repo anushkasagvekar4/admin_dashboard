@@ -1,28 +1,50 @@
 "use client";
-import { useState } from "react";
+import { useEffect } from "react";
+import { useParams } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/app/store/Store";
 import { SectionHeading } from "@/app/Home/SectionHeading";
 import { Truck, CheckCircle2, Clock } from "lucide-react";
-
-const orders = [
-  {
-    id: "#1024",
-    item: "Red Velvet Delight",
-    date: "Today",
-    status: "Out for delivery",
-    step: 3,
-  },
-  {
-    id: "#1023",
-    item: "Vanilla Dream",
-    date: "Yesterday",
-    status: "Delivered",
-    step: 4,
-  },
-];
+import { fetchOrderById, fetchAllOrders } from "@/app/features/orders/orderApi";
 
 export default function CustomerTracker() {
-  const [current] = useState(orders[0]);
+  const { id } = useParams();
+  const dispatch = useDispatch<AppDispatch>();
+  const { currentOrder, orders, loading } = useSelector(
+    (state: RootState) => state.orders
+  );
+
   const steps = ["Placed", "Baking", "Dispatched", "Delivered"];
+
+  // Map order status to step number for tracking
+  const getStep = (status: string) => {
+    switch (status) {
+      case "Pending":
+        return 2;
+      case "Completed":
+        return 4;
+      case "Cancelled":
+        return 0;
+      default:
+        return 1;
+    }
+  };
+
+  useEffect(() => {
+    if (id && typeof id === "string") {
+      dispatch(fetchOrderById(id));
+    }
+    // Also fetch all orders for the recent orders table
+    dispatch(fetchAllOrders());
+  }, [dispatch, id]);
+
+  if (loading || !currentOrder) return <p>Loading order tracking...</p>;
+
+  const currentStep = getStep(currentOrder.status);
+  const itemsList = currentOrder.items
+    ?.map((i) => i.cake?.cake_name)
+    .filter(Boolean)
+    .join(", ") || "No items";
 
   return (
     <div>
@@ -35,10 +57,11 @@ export default function CustomerTracker() {
         </p>
       </div>
 
+      {/* Tracking Steps */}
       <div className="rounded-xl border p-5">
         <SectionHeading
-          title={`Tracking ${current.id}`}
-          subtitle={`${current.item} · ${current.status}`}
+          title={`Order #${currentOrder.order_no}`}
+          subtitle={`${itemsList} · ${currentOrder.status}`}
           className="mb-4 text-left"
         />
         <div className="flex items-center gap-3">
@@ -46,14 +69,14 @@ export default function CustomerTracker() {
             <div key={s} className="flex items-center">
               <div
                 className={`size-9 rounded-full flex items-center justify-center ${
-                  i + 1 <= current.step
+                  i + 1 <= currentStep
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-muted-foreground"
                 }`}
               >
-                {i + 1 < current.step ? (
+                {i + 1 < currentStep ? (
                   <CheckCircle2 size={18} />
-                ) : i + 1 === current.step ? (
+                ) : i + 1 === currentStep ? (
                   <Truck size={18} />
                 ) : (
                   <Clock size={18} />
@@ -62,7 +85,7 @@ export default function CustomerTracker() {
               {i < steps.length - 1 && (
                 <div
                   className={`w-10 h-1 mx-2 rounded ${
-                    i + 1 < current.step ? "bg-primary/60" : "bg-secondary"
+                    i + 1 < currentStep ? "bg-primary/60" : "bg-secondary"
                   }`}
                 />
               )}
@@ -71,6 +94,7 @@ export default function CustomerTracker() {
         </div>
       </div>
 
+      {/* Recent Orders Table */}
       <div className="mt-6">
         <SectionHeading title="Recent Orders" className="mb-2 text-left" />
         <div className="overflow-x-auto rounded-xl border">
@@ -84,11 +108,15 @@ export default function CustomerTracker() {
               </tr>
             </thead>
             <tbody>
-              {orders.map((o) => (
+              {orders.slice(0, 5).map((o) => (
                 <tr key={o.id} className="border-t">
-                  <td className="p-3 font-medium">{o.id}</td>
-                  <td className="p-3">{o.item}</td>
-                  <td className="p-3">{o.date}</td>
+                  <td className="p-3 font-medium">#{o.order_no}</td>
+                  <td className="p-3">
+                    {o.items?.map((i) => i.cake?.cake_name).join(", ") || "N/A"}
+                  </td>
+                  <td className="p-3">
+                    {new Date(o.created_at).toLocaleDateString()}
+                  </td>
                   <td className="p-3">{o.status}</td>
                 </tr>
               ))}

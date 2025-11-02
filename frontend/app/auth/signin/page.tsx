@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Mail, Lock } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/app/store/hook";
-import { signinUser } from "@/app/features/auth/authApi"; // 👈 make sure you have this
-import { checkUserEnquiryStatus } from "@/app/features/shop_admin/enquiry/enquirySlice";
+import { signinUser } from "@/app/features/auth/authApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { checkUserEnquiryStatusAPI } from "@/app/features/shop_admin/enquiry/enquiryApi";
 
 export default function Signin() {
   const router = useRouter();
@@ -19,32 +19,44 @@ export default function Signin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Helper function to handle shop admin redirect based on enquiry status
+  /**
+   * 🟢 Handle redirect for shop admin after signin
+   */
   const handleShopAdminRedirect = async () => {
     try {
-      const enquiryStatusResult = await dispatch(checkUserEnquiryStatus()).unwrap();
-      
-      if (!enquiryStatusResult.hasEnquiry) {
-        // No enquiry submitted, redirect to enquiry form
+      const res = await checkUserEnquiryStatusAPI();
+
+      // ✅ Match backend structure exactly
+      const data = res.data; // { hasEnquiry, status, enquiry }
+
+      if (!data?.hasEnquiry) {
         router.push("/auth/enquiry");
-      } else if (enquiryStatusResult.status === "pending") {
-        // Enquiry pending, redirect to status page
-        router.push("/admin/enquiry-status");
-      } else if (enquiryStatusResult.status === "approved") {
-        // Enquiry approved, check if this is first login after approval
-        // For now, redirect to welcome page to show the success message
-        router.push("/admin/welcome");
-      } else if (enquiryStatusResult.status === "rejected") {
-        // Enquiry rejected, redirect to enquiry form to resubmit
-        router.push("/auth/enquiry");
+        return;
       }
-    } catch (error) {
-      console.error("Failed to check enquiry status:", error);
-      // Fallback to enquiry form if status check fails
-      router.push("/auth/enquiry");
+
+      switch (data.status) {
+        case "pending":
+          router.push("/auth/enquiry/enquiry-status");
+          break;
+        case "approved":
+          router.push("/admin/home");
+          break;
+        case "rejected":
+          router.push("/auth/enquiry/enquiry-status");
+          break;
+        default:
+          router.push("/auth/enquiry");
+      }
+    } catch (err) {
+      console.error("❌ Failed to check enquiry status:", err);
+      toast.error("Could not verify enquiry status. Redirecting...");
+      // router.push("/auth/enquiry");
     }
   };
 
+  /**
+   * 🟢 Handle signin submit
+   */
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -56,15 +68,18 @@ export default function Signin() {
         });
 
         // ✅ Role-based redirect
-        if (res.role === "super_admin") {
-          router.push("/super_admin/home");
-        } else if (res.role === "shop_admin") {
-          // Check enquiry status for shop admin
-          await handleShopAdminRedirect();
-        } else if (res.role === "customer") {
-          router.push("/customer/home");
-        } else {
-          toast.error("Unknown role");
+        switch (res.role) {
+          case "super_admin":
+            router.push("/super_admin/home");
+            break;
+          case "shop_admin":
+            await handleShopAdminRedirect();
+            break;
+          case "customer":
+            router.push("/customer/home");
+            break;
+          default:
+            toast.error("Unknown user role");
         }
       })
       .catch((err) => {
@@ -85,6 +100,7 @@ export default function Signin() {
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
+          {/* Email */}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <div className="relative">
@@ -104,6 +120,7 @@ export default function Signin() {
             </div>
           </div>
 
+          {/* Password */}
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <div className="relative">
@@ -121,15 +138,19 @@ export default function Signin() {
                 className="pl-9 pr-10 h-11 rounded-xl"
               />
             </div>
+            <Link href="/auth/forgot-password">Forgot Password</Link>
           </div>
 
+          {/* Submit Button */}
           <Button disabled={loading} className="w-full h-11 rounded-xl">
             {loading ? "Signing in..." : "Sign in"}
           </Button>
         </form>
 
+        {/* Error */}
         {error && <p className="text-red-500 text-center mt-2">{error}</p>}
 
+        {/* Sign Up link */}
         <p className="mt-4 text-center text-sm text-muted-foreground">
           Don’t have an account?{" "}
           <Link href="/auth/signup" className="text-primary hover:underline">

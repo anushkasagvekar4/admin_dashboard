@@ -20,12 +20,12 @@ import {
 import { toast } from "sonner";
 import { createCakesSchema } from "@/lib/validations";
 
-// slices
-import {
-  uploadImage,
-  resetImage,
-} from "@/app/features/common/imageUploadSlice";
+import { uploadMultipleImagesToCloudinary } from "@/app/features/common/imageUploadApi";
 import { createCake } from "@/app/features/shop_admin/cakes/cakeApi";
+import {
+  addPreviewImage,
+  removePreviewImage,
+} from "@/app/features/shop_admin/cakes/cakeSlice";
 
 interface CakeForm {
   cake_name: string;
@@ -39,12 +39,14 @@ interface CakeForm {
 
 export default function AddCake() {
   const dispatch = useDispatch<AppDispatch>();
-  const { url: uploadedUrl, status: uploadStatus } = useSelector(
-    (state: RootState) => state.imageUpload
-  );
   const { loading } = useSelector((state: RootState) => state.cakes);
+  const selectedCake = useSelector(
+    (state: RootState) => state.cakes.selectedCake
+  );
 
-  const [preview, setPreview] = useState<string | null>(null);
+  const [previews, setPreviews] = useState<string[]>([]); // local preview
+  const [uploadedUrls, setUploadedUrls] = useState<string[]>([]); // local uploaded URLs
+  const [uploading, setUploading] = useState(false);
 
   const {
     register,
@@ -65,34 +67,62 @@ export default function AddCake() {
     },
   });
 
-  const handleFileChange = (file: File) => {
-    if (file) {
-      setPreview(URL.createObjectURL(file));
-      dispatch(uploadImage(file));
+  const handleFilesChange = async (files: FileList | null) => {
+    if (!files) return;
+    const fileArray = Array.from(files);
+
+    // generate new previews
+    const newPreviewUrls = fileArray.map((file) => URL.createObjectURL(file));
+
+    // append to existing previews
+    setPreviews((prev) => [...prev, ...newPreviewUrls]);
+
+    // start uploading
+    setUploading(true);
+    try {
+      const newUrls = await uploadMultipleImagesToCloudinary(fileArray);
+
+      // append uploaded URLs to existing ones
+      setUploadedUrls((prev) => [...prev, ...newUrls]);
+
+      toast.success("Images uploaded successfully!");
+    } catch (err: any) {
+      toast.error(err.message || "Image upload failed");
+    } finally {
+      setUploading(false);
     }
   };
 
+  const handleRemovePreview = (index: number) => {
+    setPreviews((prev) => prev.filter((_, i) => i !== index));
+    setUploadedUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const onSubmit = async (data: CakeForm) => {
-    if (!uploadedUrl) {
-      toast.error("Please upload an image before submitting");
+    if (uploadedUrls.length === 0) {
+      toast.error("Please upload at least one image before submitting");
       return;
     }
 
     const cakeData = {
       ...data,
-      image: uploadedUrl,
+      images: uploadedUrls,
     };
 
     try {
       await dispatch(createCake(cakeData)).unwrap();
       toast.success("Cake added successfully!");
-      reset(); // clears form fields
-      setValue("cake_type", ""); // reset Select
-      setPreview(null);
-      dispatch(resetImage()); // clears image from slice
+      reset();
+      setValue("cake_type", "");
+      setPreviews([]);
+      setUploadedUrls([]);
     } catch (err: any) {
       toast.error(err || "Failed to add cake");
     }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    dispatch(removePreviewImage(index));
   };
 
   return (
@@ -106,34 +136,39 @@ export default function AddCake() {
           onSubmit={handleSubmit(onSubmit)}
           className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4"
         >
-          {/* Image */}
-          <div className="space-y-2">
-            <Label htmlFor="image">Cake Image</Label>
+          {/* Multiple Images */}
+          <div className="space-y-2 col-span-full">
+            <Label htmlFor="images">Cake Images</Label>
             <Input
-              id="image"
+              id="images"
               type="file"
               accept="image/*"
+              multiple
               className="h-11 rounded-xl"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFileChange(file);
-              }}
+              onChange={(e) => handleFilesChange(e.target.files)}
             />
-            {preview && (
-              <Image
-                src={preview}
-                alt="Cake Preview"
-                width={150}
-                height={150}
-                className="object-cover rounded-xl"
-              />
-            )}
-            {uploadStatus === "loading" && (
-              <p className="text-sm text-blue-500">Uploading...</p>
-            )}
-            {uploadStatus === "failed" && (
-              <p className="text-sm text-red-500">Upload failed. Try again.</p>
-            )}
+
+            <div className="flex gap-2 flex-wrap mt-2">
+              {previews.map((url, idx) => (
+                <div key={idx} className="relative">
+                  <img
+                    src={url}
+                    alt={`Cake preview ${idx + 1}`}
+                    width={100}
+                    height={100}
+                    className="object-cover rounded-xl"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePreview(idx)}
+                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+            {uploading && <p className="text-blue-500">Uploading...</p>}
           </div>
 
           {/* Cake Name */}
@@ -231,9 +266,9 @@ export default function AddCake() {
             <Button
               type="submit"
               className="w-full h-11 rounded-xl"
-              disabled={loading || uploadStatus === "loading"}
+              disabled={loading || uploading}
             >
-              {loading ? "Adding..." : "Add Cake"}
+              {loading || uploading ? "Adding..." : "Add Cake"}
             </Button>
           </div>
         </form>

@@ -68,6 +68,7 @@ export const fetchShopById = createAsyncThunk<
   try {
     const res = await api.get(`/shops/getShopById/${id}`);
     return res.data as { data: Shop };
+    console.log(res.data);
   } catch (err: any) {
     return rejectWithValue(
       err.response?.data?.message || "Failed to fetch shop"

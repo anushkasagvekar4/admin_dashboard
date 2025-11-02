@@ -1,15 +1,21 @@
 import { Enquiry } from "../models/enquiry";
 import { Shop } from "../models/shop";
 import { Auth } from "../models/auth";
-import { AuthRequest } from "../middleware/Auth";
-
 import { Request, Response, RequestHandler } from "express";
+import { AuthRequest } from "../middleware/Auth";
+import {
+  sendEmail,
+  sendEnquiryApprovedEmail,
+  sendEnquiryRejectedEmail,
+} from "../services/emailService";
 
-// Create a new shop enquiry (no authentication required)
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://yourfrontend.com";
+
+/**
+ * 📨 Create a new shop enquiry
+ */
 export const createEnquiry: RequestHandler = async (req, res) => {
   try {
-    console.log("=== createEnquiry called ===");
-
     const { shopname, ownername, email, phone, address, city } = req.body;
 
     if (!email) {
@@ -19,49 +25,51 @@ export const createEnquiry: RequestHandler = async (req, res) => {
       });
     }
 
-    console.log("Creating enquiry for email:", email);
-
-    // Check if user already has a pending or approved enquiry
     const existingEnquiry = await Enquiry.query()
       .where("email", email)
       .whereIn("status", ["pending", "approved"])
       .first();
 
     if (existingEnquiry) {
-      if (existingEnquiry.status === "pending") {
-        return res.status(409).json({
-          success: false,
-          message:
-            "You already have a pending enquiry. Please wait for admin approval.",
-          data: existingEnquiry,
-        });
-      } else if (existingEnquiry.status === "approved") {
-        return res.status(409).json({
-          success: false,
-          message:
-            "You already have an approved shop. You cannot submit another enquiry.",
-          data: existingEnquiry,
-        });
-      }
+      const message =
+        existingEnquiry.status === "pending"
+          ? "You already have a pending enquiry. Please wait for admin approval."
+          : "You already have an approved shop. You cannot submit another enquiry.";
+      return res
+        .status(409)
+        .json({ success: false, message, data: existingEnquiry });
     }
 
-    // Create enquiry directly from body
-    const enquiryData = {
+    const newEnquiry = await Enquiry.query().insertAndFetch({
       shopname,
       ownername,
       email,
       phone,
       address,
       city,
-      status: "pending" as const,
-    };
+      status: "pending",
+    });
 
-    const newEnquiry = await Enquiry.query().insertAndFetch(enquiryData);
+    // Acknowledgement email
+    await sendEmail({
+      to: email,
+      subject: "Your CakeHaven Shop Enquiry Received",
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2 style="color:#e63946;">We’ve received your enquiry 🎉</h2>
+          <p>Hi ${ownername},</p>
+          <p>Thank you for submitting your shop enquiry. Our team will review your details and notify you via email.</p>
+          <p>You can check your enquiry status anytime by logging in.</p>
+          <p>– The CakeHaven Team 🍰</p>
+        </div>
+      `,
+    });
 
     return res.status(201).json({
       success: true,
       message: "Shop enquiry submitted successfully",
       data: newEnquiry,
+      redirect: "/auth/enquiry/thank-you",
     });
   } catch (err: any) {
     console.error("Create enquiry error:", err);
@@ -69,17 +77,12 @@ export const createEnquiry: RequestHandler = async (req, res) => {
   }
 };
 
-export const getEnquiries: RequestHandler = async (
-  req: Request,
-  res: Response
-) => {
+/**
+ * 📋 Get all enquiries (super admin)
+ */
+export const getEnquiries: RequestHandler = async (req, res) => {
   try {
-    console.log("=== getEnquiries called (no auth required) ===");
-
     const enquiries = await Enquiry.query().orderBy("created_at", "desc");
-
-    console.log("Enquiries fetched:", enquiries.length);
-
     res.status(200).json({ success: true, data: enquiries });
   } catch (err: any) {
     console.error("Get enquiries error:", err);
@@ -87,6 +90,9 @@ export const getEnquiries: RequestHandler = async (
   }
 };
 
+/**
+ * ✅ Approve enquiry (super admin)
+ */
 export const approveEnquiry: RequestHandler = async (req, res) => {
   try {
     const { id } = req.params;
@@ -96,6 +102,7 @@ export const approveEnquiry: RequestHandler = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Enquiry not found" });
+
     if (enquiry.status !== "pending")
       return res
         .status(400)
@@ -113,18 +120,23 @@ export const approveEnquiry: RequestHandler = async (req, res) => {
       status: "active",
     });
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Enquiry approved & shop created",
-        data: newShop,
-      });
+    // 🎉 Send approval email
+    await sendEnquiryApprovedEmail(enquiry.email, enquiry.shopname);
+
+    res.status(200).json({
+      success: true,
+      message: "Enquiry approved, shop created, and approval email sent",
+      data: newShop,
+    });
   } catch (err: any) {
+    console.error("Approve enquiry error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
+/**
+ * ❌ Reject enquiry (super admin)
+ */
 export const rejectEnquiry: RequestHandler = async (req, res) => {
   try {
     const { id } = req.params;
@@ -135,6 +147,7 @@ export const rejectEnquiry: RequestHandler = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Enquiry not found" });
+
     if (enquiry.status !== "pending")
       return res
         .status(400)
@@ -145,78 +158,54 @@ export const rejectEnquiry: RequestHandler = async (req, res) => {
       reason: reason || "Not specified",
     });
 
-    res
-      .status(200)
-      .json({ success: true, message: "Enquiry rejected successfully" });
+    // 🚫 Send rejection email
+    await sendEnquiryRejectedEmail(enquiry.email, enquiry.shopname, reason);
+
+    res.status(200).json({
+      success: true,
+      message: "Enquiry rejected and email sent",
+    });
   } catch (err: any) {
+    console.error("Reject enquiry error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// Check current user's enquiry status
+/**
+ * 🔍 Check user enquiry status (for redirect logic)
+ */
 export const checkUserEnquiryStatus = async (
   req: AuthRequest,
   res: Response
 ) => {
   try {
-    console.log("=== checkUserEnquiryStatus called ===");
-    console.log("req.user:", req.user);
+    if (!req.user)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
 
-    if (!req.user) {
-      console.log("No user attached to request");
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized - no user info",
-      });
-    }
+    const authUser = await Auth.query().findById(req.user.id);
+    if (!authUser)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
 
-    const userId = req.user.id;
-    console.log("Checking enquiry status for user ID:", userId);
-
-    // First, get the user's email from the Auth table
-    const authUser = await Auth.query().findById(userId);
-    if (!authUser) {
-      console.log("User not found in Auth table");
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    const userEmail = authUser.email;
-    console.log("User email found:", userEmail);
-
-    // Find the user's enquiry based on their email
     const enquiry = await Enquiry.query()
-      .where("email", userEmail)
+      .where("email", authUser.email)
       .orderBy("created_at", "desc")
       .first();
 
-    console.log("User enquiry found:", enquiry);
-
     if (!enquiry) {
-      console.log("No enquiry found for this user");
       return res.status(200).json({
         success: true,
-        data: {
-          hasEnquiry: false,
-          status: null,
-          enquiry: null,
-        },
+        data: { hasEnquiry: false, status: null, enquiry: null },
       });
     }
 
-    console.log("Returning enquiry status:", enquiry.status);
     res.status(200).json({
       success: true,
-      data: {
-        hasEnquiry: true,
-        status: enquiry.status,
-        enquiry: enquiry,
-      },
+      data: { hasEnquiry: true, status: enquiry.status, enquiry },
     });
   } catch (err: any) {
-    console.error("Check user enquiry status error:", err);
+    console.error("Check enquiry status error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };

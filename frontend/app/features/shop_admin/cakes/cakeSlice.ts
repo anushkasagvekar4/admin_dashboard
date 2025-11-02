@@ -8,10 +8,24 @@ import {
   deleteCake,
   toggleCakeStatus, // new soft delete / active-inactive toggle
 } from "./cakeApi";
+interface Cake {
+  id: string;
+  images: string[]; // ✅ changed from image: string
+  cake_name: string;
+  price: number;
+  cake_type?: string;
+  flavour?: string;
+  category?: string;
+  size?: string;
+  noofpeople?: number;
+  status: "active" | "inactive";
+  created_at?: string;
+  updated_at?: string;
+}
 
 interface CakeState {
-  cakes: any[]; // replace `any` with proper Cake type if needed
-  selectedCake: any | null;
+  cakes: Cake[];
+  selectedCake: Cake | null;
   loading: boolean;
   error: string | null;
 }
@@ -38,6 +52,15 @@ const cakeSlice = createSlice({
       state.selectedCake = null;
       state.loading = false;
       state.error = null;
+    },
+    addPreviewImage: (state, action) => {
+      if (state.selectedCake) state.selectedCake.images.push(action.payload);
+    },
+    removePreviewImage: (state, action) => {
+      if (state.selectedCake)
+        state.selectedCake.images = state.selectedCake.images.filter(
+          (_, i) => i !== action.payload
+        );
     },
   },
   extraReducers: (builder) => {
@@ -142,6 +165,11 @@ const cakeSlice = createSlice({
   },
 });
 
-export const { clearCakeError, clearSelectedCake, resetCakes } =
-  cakeSlice.actions;
+export const {
+  clearCakeError,
+  clearSelectedCake,
+  addPreviewImage,
+  removePreviewImage,
+  resetCakes,
+} = cakeSlice.actions;
 export default cakeSlice.reducer;

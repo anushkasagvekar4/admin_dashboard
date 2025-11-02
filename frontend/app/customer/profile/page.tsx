@@ -69,7 +69,7 @@ export default function CustomerProfile() {
 
     // ✅ Ensure email always comes from Redux, never blank
     const payload = {
-      full_name: fullName,
+      full_name: user || fullName,
       email: user || email,
       phone,
       address,

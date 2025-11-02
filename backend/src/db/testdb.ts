@@ -1,9 +1,14 @@
-import knex from "knex";
-import config from "./knexfile";
+import db from "./knexInstance";
 
-const db = knex(config.development);
+async function test() {
+  try {
+    const result = await db.raw("SELECT NOW()");
+    console.log("✅ Connected successfully:", result.rows[0]);
+  } catch (err) {
+    console.error("❌ Connection error:", err);
+  } finally {
+    await db.destroy();
+  }
+}
 
-db.raw("SELECT 1")
-  .then(() => console.log("Database connected!"))
-  .catch((err) => console.error("DB connection error:", err))
-  .finally(() => db.destroy());
+test();

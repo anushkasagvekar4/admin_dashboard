@@ -1,25 +1,26 @@
 // features/common/imageUploadSlice.ts
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { uploadImageToCloudinary } from "./imageUploadApi";
+import { uploadMultipleImagesToCloudinary } from "./imageUploadApi";
 
 interface UploadState {
-  url: string | null;
+  urls: string[]; // ✅ store multiple image URLs
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
 }
 
 const initialState: UploadState = {
-  url: null,
+  urls: [],
   status: "idle",
   error: null,
 };
 
-export const uploadImage = createAsyncThunk(
-  "image/upload",
-  async (file: File, { rejectWithValue }) => {
+// ✅ Updated thunk to handle multiple files
+export const uploadImages = createAsyncThunk(
+  "images/uploadMultiple",
+  async (files: File[], { rejectWithValue }) => {
     try {
-      const url = await uploadImageToCloudinary(file);
-      return url;
+      const urls = await uploadMultipleImagesToCloudinary(files);
+      return urls; // array of URLs
     } catch (err: any) {
       return rejectWithValue(err.message);
     }
@@ -30,28 +31,32 @@ const imageUploadSlice = createSlice({
   name: "imageUpload",
   initialState,
   reducers: {
-    resetImage: (state) => {
-      state.url = null;
+    resetImages: (state) => {
+      state.urls = [];
       state.status = "idle";
       state.error = null;
+    },
+    removeImage: (state, action) => {
+      // optional: remove single image from preview
+      state.urls = state.urls.filter((_, idx) => idx !== action.payload);
     },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(uploadImage.pending, (state) => {
+      .addCase(uploadImages.pending, (state) => {
         state.status = "loading";
         state.error = null;
       })
-      .addCase(uploadImage.fulfilled, (state, action) => {
+      .addCase(uploadImages.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.url = action.payload;
+        state.urls = action.payload; // ✅ store all URLs
       })
-      .addCase(uploadImage.rejected, (state, action) => {
+      .addCase(uploadImages.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload as string;
       });
   },
 });
 
-export const { resetImage } = imageUploadSlice.actions;
+export const { resetImages, removeImage } = imageUploadSlice.actions;
 export default imageUploadSlice.reducer;
