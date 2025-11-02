@@ -4,8 +4,8 @@ import api from "@/app/utils/axios";
 // features/shop_admin/cakes/cakeApi.ts
 
 interface BackendCake {
-  id: string; // changed from number to string (UUID)
-  image: string;
+  id: string;
+  images: string[]; // ✅ changed from single image to array
   cake_name: string;
   price: number;
   cake_type?: string;
@@ -13,13 +13,13 @@ interface BackendCake {
   category?: string;
   size?: string;
   noofpeople?: number;
-  status: "active" | "inactive"; // active/inactive
+  status: "active" | "inactive";
   created_at?: string;
   updated_at?: string;
 }
 
 export interface CakeData {
-  image: string;
+  images: string[]; // ✅ changed here too
   cake_name: string;
   price: number;
   cake_type?: string;
@@ -30,7 +30,7 @@ export interface CakeData {
   status?: "active" | "inactive";
 }
 
-// CREATE
+// ✅ CREATE Cake (multiple images)
 export const createCake = createAsyncThunk(
   "cakes/createCake",
   async (data: CakeData, { rejectWithValue }) => {
@@ -45,7 +45,7 @@ export const createCake = createAsyncThunk(
   }
 );
 
-// GET ALL
+// ✅ GET ALL Cakes
 export const getCakes = createAsyncThunk<
   BackendCake[],
   void,
@@ -53,7 +53,7 @@ export const getCakes = createAsyncThunk<
 >("cakes/getCakes", async (_, { rejectWithValue }) => {
   try {
     const res = await api.get("/cakes/getAllCakes");
-    return res.data.data; // backend array
+    return res.data.data;
   } catch (err: any) {
     return rejectWithValue(
       err.response?.data?.message || "Fetching cakes failed"
@@ -61,13 +61,13 @@ export const getCakes = createAsyncThunk<
   }
 });
 
-// GET BY ID
+// ✅ GET BY ID
 export const getCakeById = createAsyncThunk(
   "cakes/getCakeById",
   async (id: string, { rejectWithValue }) => {
     try {
       const res = await api.get(`/cakes/getCakeById/${id}`);
-      return res.data.data; // only return the cake object
+      return res.data.data;
     } catch (err: any) {
       return rejectWithValue(
         err.response?.data?.message || "Fetching cake failed. Try again."
@@ -76,7 +76,7 @@ export const getCakeById = createAsyncThunk(
   }
 );
 
-// UPDATE
+// ✅ UPDATE
 export const updateCake = createAsyncThunk(
   "cakes/updateCake",
   async (
@@ -85,7 +85,7 @@ export const updateCake = createAsyncThunk(
   ) => {
     try {
       const res = await api.patch(`/cakes/updateCake/${id}`, data);
-      return res.data.data; // updated cake
+      return res.data.data;
     } catch (err: any) {
       return rejectWithValue(
         err.response?.data?.message || "Update cake failed. Try again."
@@ -94,13 +94,13 @@ export const updateCake = createAsyncThunk(
   }
 );
 
-// TOGGLE STATUS (instead of hard delete)
+// ✅ TOGGLE STATUS
 export const toggleCakeStatus = createAsyncThunk(
   "cakes/toggleCakeStatus",
   async (id: string, { rejectWithValue }) => {
     try {
       const res = await api.patch(`/cakes/toggleCakeStatus/${id}`);
-      return res.data.data; // returns cake with updated status
+      return res.data.data;
     } catch (err: any) {
       return rejectWithValue(
         err.response?.data?.message || "Toggle cake status failed. Try again."
@@ -109,13 +109,13 @@ export const toggleCakeStatus = createAsyncThunk(
   }
 );
 
-// Example small improvement for DELETE to return the deleted id directly
+// ✅ DELETE
 export const deleteCake = createAsyncThunk<string, string>(
   "cakes/deleteCake",
   async (id, { rejectWithValue }) => {
     try {
       await api.delete(`/cakes/deleteCake/${id}`);
-      return id; // return id directly
+      return id;
     } catch (err: any) {
       return rejectWithValue(
         err.response?.data?.message || "Delete cake failed. Try again."

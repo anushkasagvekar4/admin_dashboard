@@ -14,14 +14,14 @@ import { MoreHorizontal } from "lucide-react";
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
 export type Order = {
-  id: number;
+  id: string;
   order_no: number;
   full_name: string;
   email: string;
   address: string;
-  phone: number;
+  phone: string;
   order_date: string;
-  status: "Confirmed" | "Pending " | "On The Way" | "Delivered";
+  status: "Pending" | "Completed" | "Cancelled";
 };
 
 export const columns: ColumnDef<Order>[] = [

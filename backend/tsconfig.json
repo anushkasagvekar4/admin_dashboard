@@ -18,5 +18,8 @@
     // Make sure custom types are picked up
     "typeRoots": ["./src/types", "./node_modules/@types"]
   },
-  "include": ["src","src/types"]
+   
+  "include": ["src"]
+
+
 }

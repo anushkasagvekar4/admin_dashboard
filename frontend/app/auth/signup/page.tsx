@@ -28,15 +28,16 @@ export default function Signup() {
         toast.success("Account created!", {
           description: `Welcome, ${res.email}!`,
         });
+        router.push("/auth/signin");
 
         // ✅ Role-based redirect
-        if (res.role === "super_admin") {
-          router.push("/super_admin/home");
-        } else if (res.role === "shop_admin") {
-          router.push("/admin/home");
-        } else {
-          router.push("/customer/home");
-        }
+        // if (res.role === "super_admin") {
+        //   router.push("/super_admin/home");
+        // } else if (res.role === "shop_admin") {
+        //   router.push("/admin/home");
+        // } else {
+        //   router.push("/customer/home");
+        // }
       })
       .catch((err) => {
         toast.error("Signup failed", {

@@ -1,28 +1,54 @@
 "use client";
+
 import { useEffect, useMemo, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { toast } from "sonner";
-import { RootState, AppDispatch } from "@/app/store/Store";
 import {
-  fetchEnquiries,
-  approveEnquiry,
-  rejectEnquiry,
-} from "@/app/features/super_admin/super_admin_enquiry/enquiryUpdateSlice";
+  getEnquiriesAPI,
+  approveEnquiryAPI,
+  rejectEnquiryAPI,
+} from "@/app/api/enquiryApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+
+interface Enquiry {
+  id: string;
+  shopname: string;
+  ownername: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  status: "pending" | "approved" | "rejected";
+}
 
 export default function AdminEnquiries() {
-  const dispatch = useDispatch<AppDispatch>();
-  const { enquiries, status, error } = useSelector(
-    (state: RootState) => state.superAdmin
-  );
-
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "succeeded" | "failed"
+  >("idle");
+  const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
 
+  // 🟢 Fetch enquiries on mount
   useEffect(() => {
-    dispatch(fetchEnquiries());
-  }, [dispatch]);
+    const fetchData = async () => {
+      setStatus("loading");
+      try {
+        const res = await getEnquiriesAPI();
+        if (res.success) {
+          setEnquiries(res.data);
+          setStatus("succeeded");
+        } else {
+          throw new Error(res.message || "Failed to fetch enquiries");
+        }
+      } catch (err: any) {
+        setError(err.message);
+        setStatus("failed");
+      }
+    };
+    fetchData();
+  }, []);
 
   const filtered = useMemo(() => {
     return enquiries.filter(
@@ -31,6 +57,38 @@ export default function AdminEnquiries() {
         e.ownername.toLowerCase().includes(q.toLowerCase())
     );
   }, [enquiries, q]);
+
+  const handleApprove = async (id: string, ownername: string) => {
+    try {
+      await approveEnquiryAPI(id);
+      setEnquiries((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, status: "approved" } : e))
+      );
+      toast.success("Enquiry approved successfully!", {
+        description: `${ownername} can now sell cakes on CakeHaven 🎉`,
+      });
+    } catch (err: any) {
+      toast.error("Failed to approve enquiry", {
+        description: err.message || "Something went wrong",
+      });
+    }
+  };
+
+  const handleReject = async (id: string, ownername: string) => {
+    try {
+      await rejectEnquiryAPI(id);
+      setEnquiries((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, status: "rejected" } : e))
+      );
+      toast.warning("Enquiry rejected", {
+        description: `${ownername}'s request has been rejected.`,
+      });
+    } catch (err: any) {
+      toast.error("Failed to reject enquiry", {
+        description: err.message || "Something went wrong",
+      });
+    }
+  };
 
   return (
     <div>
@@ -90,20 +148,7 @@ export default function AdminEnquiries() {
                     <div className="flex flex-wrap gap-2">
                       <Button
                         size="sm"
-                        onClick={() => {
-                          dispatch(approveEnquiry(e.id))
-                            .unwrap()
-                            .then(() => {
-                              toast.success("Enquiry approved successfully!", {
-                                description: `${e.ownername} can now enjoy selling cakes and start their business on CakeHaven!`,
-                              });
-                            })
-                            .catch((err) => {
-                              toast.error("Failed to approve enquiry", {
-                                description: err || "Something went wrong",
-                              });
-                            });
-                        }}
+                        onClick={() => handleApprove(e.id, e.ownername)}
                         disabled={e.status !== "pending"}
                       >
                         Approve
@@ -111,7 +156,7 @@ export default function AdminEnquiries() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => dispatch(rejectEnquiry({ id: e.id }))}
+                        onClick={() => handleReject(e.id, e.ownername)}
                         disabled={e.status !== "pending"}
                       >
                         Reject

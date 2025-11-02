@@ -1,295 +1,269 @@
-import { AuthRequest } from "../middleware/Auth";
-import { Customer } from "../models/customer";
 import { Request, Response } from "express";
+import { Customer } from "../models/customer";
+import { AuthRequest } from "../middleware/Auth";
 
-// 🧩 Create Customer (only for logged-in customer)
 export const createCustomer = async (req: AuthRequest, res: Response) => {
   try {
+    console.log("👉 Received payload:", req.body);
+
     if (!req.user || req.user.role !== "customer") {
-      return res.status(403).json({
-        success: false,
-        message: "Forbidden: Only customers can create their own account",
-      });
-    }
-
-    const { full_name, email, address, phone } = req.body;
-    const auth_id = req.user.id;
-
-    if (!full_name || !email || !address || !phone) {
       return res
-        .status(400)
-        .json({ success: false, message: "All fields are required" });
+        .status(403)
+        .json({ success: false, message: "Only customers can create profile" });
     }
 
-    // Check for duplicates
+    const { full_name, email, phone, address } = req.body;
+
+    // Check if already exists
     const existing = await Customer.query()
-      .where("auth_id", auth_id)
-      .orWhere("email", email)
-      .orWhere("phone", phone)
+      .where("auth_id", req.user!.id)
       .first();
 
     if (existing) {
-      return res.status(409).json({
+      return res.status(400).json({
         success: false,
-        message: "Customer already exists",
+        message: "Profile already exists",
       });
     }
 
-    const newCustomer = await Customer.query().insert({
-      auth_id,
+    const customer = await Customer.query().insert({
+      auth_id: req.user!.id,
       full_name,
       email,
-      address,
       phone,
+      address,
       status: "active",
       created_at: new Date(),
       updated_at: new Date(),
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: "Customer account created successfully",
-      data: newCustomer,
+      message: "Customer profile created successfully",
+      data: customer,
     });
   } catch (err: any) {
     console.error("Error creating customer:", err);
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Internal server error",
+    });
   }
 };
 
-// 🧩 Get All Customers
-export const getAllCustomer = async (req: AuthRequest, res: Response) => {
+/**
+ * 🧱 Get All Customers (for super_admin)
+ */
+export const getAllCustomers = async (req: AuthRequest, res: Response) => {
   try {
-    const {
-      page = "1",
-      limit = "10",
-      search = "",
-      sortBy = "created_at",
-      order = "desc",
-    } = req.query;
-
-    const pageNumber = parseInt(page as string, 10);
-    const pageSize = parseInt(limit as string, 10);
-
-    if (!req.user)
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-
-    let query = Customer.query();
-
-    if (req.user.role === "customer") {
-      // Customers only see themselves
-      query = query.where("auth_id", req.user.id);
-    } else if (req.user.role === "shop_admin") {
-      // Shop admin → only customers who ordered from their shop
-      query = query
-        .join("orders", "orders.customer_id", "customer.id")
-        .join("cakes", "cakes.id", "orders.cake_id")
-        .join("shops", "shops.id", "cakes.shop_id")
-        .where("shops.owner_auth_id", req.user.id) // ✅ correct ownership check
-        .distinct("customer.*");
-    }
-    // Super admin → sees all
-
-    // Search
-    if (search) {
-      query = query.where((builder) => {
-        builder
-          .where("customer.full_name", "ilike", `%${search}%`)
-          .orWhere("customer.email", "ilike", `%${search}%`)
-          .orWhere("customer.phone", "ilike", `%${search}%`);
+    if (req.user?.role !== "super_admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only super_admin can view all customers",
       });
     }
 
-    query = query.orderBy(sortBy as string, order as "asc" | "desc");
-    const result = await query.page(pageNumber - 1, pageSize);
+    const customers = await Customer.query().withGraphFetched("auth");
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "Customers fetched successfully",
-      data: result.results,
-      pagination: {
-        total: result.total,
-        page: pageNumber,
-        limit: pageSize,
-        totalPages: Math.ceil(result.total / pageSize),
-      },
+      message: "All customers fetched successfully",
+      data: customers,
     });
   } catch (err: any) {
     console.error("Error fetching customers:", err);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Server error",
-      error: err.message,
+      message: err.message || "Internal server error",
     });
   }
 };
 
-// 🧩 Get Customer by ID
+/**
+ * 🧱 Get Customer by ID (for admin/super_admin)
+ */
 export const getCustomerById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    if (!id)
-      return res
-        .status(400)
-        .json({ success: false, message: "Customer ID required" });
-
     const customer = await Customer.query().findById(id);
-    if (!customer)
-      return res
-        .status(404)
-        .json({ success: false, message: "Customer not found" });
 
-    const user = req.user!;
-
-    // Customer can only access their own data
-    if (user.role === "customer" && customer.auth_id !== user.id) {
-      return res.status(403).json({ success: false, message: "Forbidden" });
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found",
+      });
     }
 
-    // Shop admin → only if that customer ordered from their shop
-    if (user.role === "shop_admin") {
-      const order = await Customer.relatedQuery("orders")
-        .for(customer.id)
-        .join("cakes", "cakes.id", "orders.cake_id")
-        .join("shops", "shops.id", "cakes.shop_id")
-        .where("shops.owner_auth_id", user.id)
-        .first();
-
-      if (!order)
-        return res.status(403).json({ success: false, message: "Forbidden" });
-    }
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Customer fetched successfully",
       data: customer,
     });
   } catch (err: any) {
-    console.error("Error fetching customer:", err);
-    res.status(500).json({
+    console.error("Error fetching customer by ID:", err);
+    return res.status(500).json({
       success: false,
-      message: "Server error",
-      error: err.message,
+      message: err.message || "Internal server error",
     });
   }
 };
 
-// 🧩 Update Customer Profile (only by that customer)
+/**
+ * 🧱 Update Customer (admin or super_admin)
+ */
 export const updateCustomer = async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user || req.user.role !== "customer") {
-      return res.status(403).json({
-        success: false,
-        message: "Forbidden: Only customers can update their profile",
-      });
-    }
-
     const { id } = req.params;
-    const { full_name, email, address, phone } = req.body;
+    const { full_name, email, phone, address, status } = req.body;
 
-    const customer = await Customer.query().findById(id);
-    if (!customer)
-      return res
-        .status(404)
-        .json({ success: false, message: "Customer not found" });
-
-    if (customer.auth_id !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: "Forbidden: You can only update your own profile",
-      });
-    }
-
-    // Email uniqueness check
-    if (email && email !== customer.email) {
-      const existingEmail = await Customer.query()
-        .where("email", email)
-        .first();
-      if (existingEmail) {
-        return res
-          .status(409)
-          .json({ success: false, message: "Email already in use" });
-      }
-    }
-
-    const updatedCustomer = await Customer.query().patchAndFetchById(id, {
+    const updated = await Customer.query().patchAndFetchById(id, {
       full_name,
       email,
-      address,
       phone,
+      address,
+      status,
       updated_at: new Date(),
     });
 
-    res.status(200).json({
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found",
+      });
+    }
+
+    return res.status(200).json({
       success: true,
       message: "Customer updated successfully",
-      data: updatedCustomer,
+      data: updated,
     });
   } catch (err: any) {
     console.error("Error updating customer:", err);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Server error",
-      error: err.message,
+      message: err.message || "Internal server error",
     });
   }
 };
 
-// 🧩 Update Customer Status (only by shop admin)
+/**
+ * 🧱 Update Customer Status (admin)
+ */
 export const updateCustomerStatus = async (req: AuthRequest, res: Response) => {
   try {
-    const user = req.user!;
-    if (user.role !== "shop_admin") {
+    if (req.user?.role !== "shop_admin" && req.user?.role !== "super_admin") {
       return res.status(403).json({
         success: false,
-        message: "Only shop admins can update status",
+        message: "Only admins can update customer status",
       });
     }
 
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!id || !status)
-      return res
-        .status(400)
-        .json({ success: false, message: "ID and status required" });
-    if (!["active", "inactive"].includes(status))
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid status" });
-
-    // Ownership check: customer must have ordered from this shop
-    const order = await Customer.relatedQuery("orders")
-      .for(id)
-      .join("cakes", "cakes.id", "orders.cake_id")
-      .join("shops", "shops.id", "cakes.shop_id")
-      .where("shops.owner_auth_id", user.id)
-      .first();
-
-    if (!order)
-      return res.status(403).json({
-        success: false,
-        message: "Forbidden: Customer not in your shop",
-      });
-
-    const updatedCustomer = await Customer.query().patchAndFetchById(id, {
+    const updated = await Customer.query().patchAndFetchById(id, {
       status,
       updated_at: new Date(),
     });
 
-    res.status(200).json({
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found",
+      });
+    }
+
+    return res.status(200).json({
       success: true,
-      message: `Customer ${
-        status === "active" ? "activated" : "deactivated"
-      } successfully`,
-      data: updatedCustomer,
+      message: "Customer status updated successfully",
+      data: updated,
     });
   } catch (err: any) {
     console.error("Error updating customer status:", err);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Server error",
-      error: err.message,
+      message: err.message || "Internal server error",
+    });
+  }
+};
+
+/**
+ * 🧱 Get Logged-in Customer Profile
+ */
+export const getMyCustomer = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== "customer") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Forbidden: not a customer" });
+    }
+
+    const customer = await Customer.query()
+      .where("auth_id", req.user!.id)
+      .first();
+
+    if (!customer) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Profile not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Customer profile fetched successfully",
+      data: customer,
+    });
+  } catch (err: any) {
+    console.error("Error fetching my profile:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Internal server error",
+    });
+  }
+};
+
+/**
+ * 🧱 Update Logged-in Customer Profile
+ */
+export const updateMyCustomer = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== "customer") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Forbidden: not a customer" });
+    }
+
+    const { full_name, email, phone, address } = req.body;
+
+    const existing = await Customer.query()
+      .where("auth_id", req.user!.id)
+      .first();
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: "Profile not found",
+      });
+    }
+
+    const updated = await Customer.query().patchAndFetchById(existing.id, {
+      full_name,
+      email,
+      phone,
+      address,
+      updated_at: new Date(),
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: updated,
+    });
+  } catch (err: any) {
+    console.error("Error updating my profile:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Internal server error",
     });
   }
 };

@@ -1,10 +1,10 @@
-// import "express-serve-static-core";
+import "express";
 
-// declare module "express-serve-static-core" {
-//   interface Request {
-//     user?: {
-//       id: string;
-//       role: "customer" | "shop_admin" | "super_admin";
-//     };
-//   }
-// }
+declare module "express" {
+  interface Request {
+    user?: {
+      id: string;
+      role: "customer" | "shop_admin" | "super_admin";
+    };
+  }
+}

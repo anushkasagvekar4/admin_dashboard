@@ -9,7 +9,7 @@ import { getAllCustomers } from "@/app/features/users/userApi";
 
 interface Customer {
   id: string;
-  full_name: string;
+  fullName: string;
   email: string;
   phone?: string;
   address?: string;
@@ -28,23 +28,39 @@ export default function CustomersPage() {
 
   // Fetch all customers on mount
   useEffect(() => {
-    dispatch(getAllCustomers());
+    console.log("🔍 Dispatching getAllCustomers...");
+    dispatch(getAllCustomers())
+      .unwrap()
+      .then((data) => {
+        console.log("✅ getAllCustomers success:", data);
+      })
+      .catch((error) => {
+        console.error("❌ getAllCustomers error:", error);
+      });
   }, [dispatch]);
 
-  // Show error toast
+  // Show error toast and debug state
   useEffect(() => {
+    console.log("📊 Customers state:", { customers, loading, error });
     if (error) toast.error(error);
-  }, [error]);
+  }, [customers, loading, error]);
+
+  console.log("🎯 Render state:", {
+    loading,
+    customersLength: customers.length,
+    error,
+  });
 
   if (loading) return <p>Loading customers...</p>;
+  if (error) return <p className="text-red-500">Error: {error}</p>;
   if (!customers.length) return <p>No customers found.</p>;
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">All Customers</h1>
 
-      <table className="min-w-full border border-gray-200 rounded-lg overflow-hidden">
-        <thead className="bg-gray-100">
+      <table className="min-w-full border border-red-200 rounded-lg overflow-hidden">
+        <thead className="bg-red-100">
           <tr>
             <th className="p-3 text-left">Name</th>
             <th className="p-3 text-left">Email</th>
@@ -57,7 +73,7 @@ export default function CustomersPage() {
         <tbody>
           {customers.map((customer: Customer) => (
             <tr key={customer.id} className="border-t">
-              <td className="p-3">{customer.full_name}</td>
+              <td className="p-3">{customer.fullName}</td>
               <td className="p-3">{customer.email}</td>
               <td className="p-3">{customer.phone || "-"}</td>
               <td className="p-3">{customer.address || "-"}</td>
@@ -74,11 +90,11 @@ export default function CustomersPage() {
 
       {/* Modal */}
       {selectedCustomer && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-lg w-96 relative">
+        <div className="fixed inset-0 bg-transparent bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-red-100 p-6 rounded-xl shadow-lg w-96 relative">
             <h2 className="text-xl font-bold mb-4">Customer Details</h2>
             <p>
-              <strong>Name:</strong> {selectedCustomer.full_name}
+              <strong>Name:</strong> {selectedCustomer.fullName}
             </p>
             <p>
               <strong>Email:</strong> {selectedCustomer.email}

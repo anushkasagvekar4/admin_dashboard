@@ -14,7 +14,7 @@ shopRouter.post("/auth/signin ", ensureAuthenticated, signin);
 
 shopRouter.get("/getShops", getShops);
 // Get single shop by ID (super_admin only)
-shopRouter.get("/getShopById/:id", getShopById);
+shopRouter.get("/getShopById/:id", ensureAuthenticated, getShopById);
 
 // Toggle shop active/inactive instead of delete (super_admin only)
 shopRouter.patch(

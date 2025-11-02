@@ -5,7 +5,7 @@ import { Shop } from "./shop";
 export class Cake extends Model {
   id!: string;
   shopId!: string; // the shop_admin who owns this cake
-  image!: string;
+  images!: string[];
   cake_name!: string;
   price!: number;
   cake_type?: string;
@@ -32,11 +32,14 @@ export class Cake extends Model {
 
   static jsonSchema = {
     type: "object",
-    required: ["image", "cake_name", "price", "shopId"], // shopId required
+    required: ["images", "cake_name", "price", "shopId"], // shopId required
     properties: {
       id: { type: "string", format: "uuid" },
       shopId: { type: "string", format: "uuid" },
-      image: { type: "string" },
+      images: {
+        type: "array", // ✅ change from string to array
+        items: { type: "string" }, // each item must be a string
+      },
       cake_name: { type: "string" },
       price: { type: "number", minimum: 0 },
       cake_type: { type: "string", nullable: true },

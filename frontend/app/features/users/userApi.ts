@@ -2,7 +2,7 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import api from "@/app/utils/axios";
 
 // Backend Customer interface
-interface BackendCustomer {
+export interface BackendCustomer {
   id: string;
   full_name: string;
   email: string;
@@ -21,7 +21,11 @@ export interface CustomerData {
   phone: string;
 }
 
-// 🧩 CREATE Customer (for logged-in customer)
+/* =========================================================
+   🧩 CUSTOMER CRUD for Logged-in Customer
+========================================================= */
+
+// ✅ CREATE Customer (for first-time profile setup)
 export const createCustomer = createAsyncThunk(
   "customers/createCustomer",
   async (data: CustomerData, { rejectWithValue }) => {
@@ -36,14 +40,50 @@ export const createCustomer = createAsyncThunk(
   }
 );
 
-// 🧩 GET ALL Customers
+// ✅ GET Current Logged-in Customer
+export const getMyCustomer = createAsyncThunk<
+  BackendCustomer,
+  void,
+  { rejectValue: string }
+>("customers/getMyCustomer", async (_, { rejectWithValue }) => {
+  try {
+    const res = await api.get("/customers/getMyCustomer/me");
+    return res.data.data;
+  } catch (err: any) {
+    return rejectWithValue(
+      err.response?.data?.message || "Failed to fetch my profile"
+    );
+  }
+});
+
+// ✅ UPDATE Current Logged-in Customer
+export const updateMyCustomer = createAsyncThunk<
+  BackendCustomer,
+  Partial<CustomerData>,
+  { rejectValue: string }
+>("customers/updateMyCustomer", async (data, { rejectWithValue }) => {
+  try {
+    const res = await api.patch("/customers/updateMyCustomer/me", data);
+    return res.data.data;
+  } catch (err: any) {
+    return rejectWithValue(
+      err.response?.data?.message || "Failed to update my profile"
+    );
+  }
+});
+
+/* =========================================================
+   🧩 ADMIN / SUPER ADMIN Operations
+========================================================= */
+
+// ✅ GET ALL Customers (for admin/super admin)
 export const getAllCustomers = createAsyncThunk<
   BackendCustomer[],
   void,
   { rejectValue: string }
 >("customers/getAllCustomers", async (_, { rejectWithValue }) => {
   try {
-    const res = await api.get("/customers/getAllCustomer");
+    const res = await api.get("/customers/getAllCustomers");
     return res.data.data;
   } catch (err: any) {
     return rejectWithValue(
@@ -52,7 +92,7 @@ export const getAllCustomers = createAsyncThunk<
   }
 });
 
-// 🧩 GET Customer by ID
+// ✅ GET Customer by ID (for admin/super admin view)
 export const getCustomerById = createAsyncThunk(
   "customers/getCustomerById",
   async (id: string, { rejectWithValue }) => {
@@ -67,7 +107,7 @@ export const getCustomerById = createAsyncThunk(
   }
 );
 
-// 🧩 UPDATE Customer Profile (only by that customer)
+// ✅ UPDATE any Customer (admin-level)
 export const updateCustomer = createAsyncThunk(
   "customers/updateCustomer",
   async (
@@ -85,7 +125,7 @@ export const updateCustomer = createAsyncThunk(
   }
 );
 
-// 🧩 TOGGLE Customer Status (only by shop admin)
+// ✅ TOGGLE Customer Status (admin-level)
 export const updateCustomerStatus = createAsyncThunk(
   "customers/updateCustomerStatus",
   async (
@@ -93,28 +133,14 @@ export const updateCustomerStatus = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const res = await api.patch(`/customers/updateCustomerStatus/${id}`, {
-        status,
-      });
+      const res = await api.patch(
+        `/customers/updateCustomerStatus/${id}/status`,
+        { status }
+      );
       return res.data.data;
     } catch (err: any) {
       return rejectWithValue(
         err.response?.data?.message || "Failed to update status"
-      );
-    }
-  }
-);
-
-// ❌ DELETE (not implemented in backend)
-export const deleteCustomer = createAsyncThunk<string, string>(
-  "customers/deleteCustomer",
-  async (id, { rejectWithValue }) => {
-    try {
-      // No backend route available for deletion
-      return rejectWithValue("Delete customer API not implemented");
-    } catch (err: any) {
-      return rejectWithValue(
-        err.response?.data?.message || "Delete customer failed"
       );
     }
   }

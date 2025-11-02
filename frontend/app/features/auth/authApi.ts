@@ -26,6 +26,7 @@ export const signupUser = createAsyncThunk(
 );
 
 // ✅ Signin
+// ✅ app/features/auth/authApi.ts
 export const signinUser = createAsyncThunk(
   "auth/signinUser",
   async (
@@ -34,12 +35,14 @@ export const signinUser = createAsyncThunk(
   ) => {
     try {
       const res = await api.post("/auth/signin", { email, password });
-      console.log(res);
-      return res.data; // { success, message, role, token, email }
+      return res.data; // { success, message, role, email }
     } catch (err: any) {
-      return rejectWithValue(
-        err.response?.data?.message || "Signin failed. Try again."
-      );
+      // Important: handle backend messages properly
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Signin failed. Try again.";
+      return rejectWithValue(msg);
     }
   }
 );

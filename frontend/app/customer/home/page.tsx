@@ -1,85 +1,31 @@
-import React from "react";
-import {
-  Heart,
-  ShoppingBag,
-  Star,
-  Clock,
-  MapPin,
-  Filter,
-  Search,
-} from "lucide-react";
+"use client";
+import React, { useEffect } from "react";
+import { Heart, ShoppingBag, Star, Filter, Search } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { getCakes } from "@/app/features/shop_admin/cakes/cakeApi";
+import { AppDispatch, RootState } from "@/app/store/Store";
+import { addToCart } from "@/app/features/orders/cartSlice";
+import Link from "next/link";
 
 const CustomerDashboard: React.FC = () => {
-  // Mock data - replace with real data from API
-  const recentOrders = [
-    {
-      id: "ORD001",
-      shop: "Sweet Paradise",
-      cake: "Chocolate Birthday Cake",
-      amount: 1200,
-      status: "delivered",
-      date: "2024-01-15",
-      image:
-        "https://images.pexels.com/photos/140831/pexels-photo-140831.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
-    },
-    {
-      id: "ORD002",
-      shop: "Cake Magic",
-      cake: "Red Velvet Cake",
-      amount: 900,
-      status: "preparing",
-      date: "2024-01-18",
-      image:
-        "https://images.pexels.com/photos/1721932/pexels-photo-1721932.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop",
-    },
-  ];
+  const dispatch = useDispatch<AppDispatch>();
+  const { cakes } = useSelector((state: RootState) => state.cakes);
 
-  const featuredCakes = [
-    {
-      id: 1,
-      name: "Premium Chocolate Truffle",
-      shop: "Divine Desserts",
-      price: 1800,
-      rating: 4.8,
-      image:
-        "https://images.pexels.com/photos/291528/pexels-photo-291528.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop",
-      category: "Birthday",
-      isEggless: false,
-    },
-    {
-      id: 2,
-      name: "Eggless Vanilla Delight",
-      shop: "Sugar Rush",
-      price: 1200,
-      rating: 4.6,
-      image:
-        "https://images.pexels.com/photos/1126359/pexels-photo-1126359.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop",
-      category: "Eggless",
-      isEggless: true,
-    },
-    {
-      id: 3,
-      name: "Classic Black Forest",
-      shop: "Cake Paradise",
-      price: 1500,
-      rating: 4.9,
-      image:
-        "https://images.pexels.com/photos/3026810/pexels-photo-3026810.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop",
-      category: "Anniversary",
-      isEggless: false,
-    },
-    {
-      id: 4,
-      name: "Strawberry Cream Cake",
-      shop: "Sweet Dreams",
-      price: 1400,
-      rating: 4.7,
-      image:
-        "https://images.pexels.com/photos/1721932/pexels-photo-1721932.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop",
-      category: "Fruit",
-      isEggless: false,
-    },
-  ];
+  useEffect(() => {
+    dispatch(getCakes());
+  }, [dispatch]);
+
+  const handleAddToCart = (cake: any) => {
+    dispatch(
+      addToCart({
+        id: cake.id,
+        cake_name: cake.cake_name || cake.name,
+        price: Number(cake.price),
+        image: cake.images && cake.images.length ? cake.images[0] : cake.image, // ✅ Use first image
+        quantity: 1,
+      })
+    );
+  };
 
   const categories = [
     "All",
@@ -94,8 +40,8 @@ const CustomerDashboard: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow group">
       <div className="relative">
         <img
-          src={cake.image}
-          alt={cake.name}
+          src={cake.images && cake.images.length ? cake.images[0] : cake.image} // ✅ First image
+          alt={cake.cake_name || cake.name}
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <button className="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-colors">
@@ -108,18 +54,32 @@ const CustomerDashboard: React.FC = () => {
         )}
       </div>
       <div className="p-4">
-        <h3 className="font-semibold text-gray-900 mb-1">{cake.name}</h3>
-        <p className="text-sm text-gray-600 mb-2">{cake.shop}</p>
+        <h3 className="font-semibold text-gray-900 mb-1">
+          {cake.cake_name || cake.name}
+        </h3>
+        <p className="text-sm text-gray-600 mb-2">
+          {cake.shop || "Local Bakery"}
+        </p>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
             <Star className="text-yellow-400 fill-current" size={16} />
-            <span className="text-sm text-gray-700 ml-1">{cake.rating}</span>
+            <span className="text-sm text-gray-700 ml-1">
+              {cake.rating || "4.5"}
+            </span>
           </div>
           <span className="text-lg font-bold text-gray-900">₹{cake.price}</span>
         </div>
-        <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+        <button
+          onClick={() => handleAddToCart(cake)}
+          className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+        >
           Add to Cart
         </button>
+        <Link href={`/customer/home/${cake.id}`}>
+          <button className="w-full mt-2 border border-blue-600 text-blue-600 py-2 px-4 rounded-lg hover:bg-blue-50 transition-colors">
+            View Details
+          </button>
+        </Link>
       </div>
     </div>
   );
@@ -154,10 +114,8 @@ const CustomerDashboard: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {recentOrders.length}
-              </p>
-              <p className="text-gray-600">Recent Orders</p>
+              <p className="text-2xl font-bold text-gray-900">{cakes.length}</p>
+              <p className="text-gray-600">Available Cakes</p>
             </div>
             <ShoppingBag className="text-blue-500" size={32} />
           </div>
@@ -181,54 +139,6 @@ const CustomerDashboard: React.FC = () => {
             </div>
             <Star className="text-yellow-500" size={32} />
           </div>
-        </div>
-      </div>
-
-      {/* Recent Orders */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Recent Orders
-          </h2>
-          <button className="text-blue-600 hover:text-blue-700 font-medium">
-            View All
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {recentOrders.map((order) => (
-            <div
-              key={order.id}
-              className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
-            >
-              <img
-                src={order.image}
-                alt={order.cake}
-                className="w-16 h-16 rounded-lg object-cover"
-              />
-              <div className="flex-1">
-                <h3 className="font-medium text-gray-900">{order.cake}</h3>
-                <p className="text-sm text-gray-600">{order.shop}</p>
-                <p className="text-sm text-gray-500">
-                  Order #{order.id} • {order.date}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="font-semibold text-gray-900">₹{order.amount}</p>
-                <span
-                  className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                    order.status === "delivered"
-                      ? "bg-green-100 text-green-800"
-                      : order.status === "preparing"
-                      ? "bg-blue-100 text-blue-800"
-                      : "bg-yellow-100 text-yellow-800"
-                  }`}
-                >
-                  {order.status}
-                </span>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -271,7 +181,7 @@ const CustomerDashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredCakes.map((cake) => (
+          {cakes.map((cake) => (
             <CakeCard key={cake.id} cake={cake} />
           ))}
         </div>

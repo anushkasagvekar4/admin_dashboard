@@ -2,12 +2,14 @@
 import { FormEvent, useState } from "react";
 // import useNavigate from "react-router-dom";
 import Link from "next/link";
-
+import Swal from "sweetalert2";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ShoppingCart, Cookie, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/Store";
 interface NavbarProps {
   cartCount: number;
 }
@@ -16,6 +18,28 @@ export function Navbar({ cartCount }: NavbarProps) {
   const router = useRouter();
   const [type, setType] = useState<"cakes" | "shops">("cakes");
   const [query, setQuery] = useState("");
+  const token = useSelector((state: RootState) => state.auth.token);
+
+  const handleAddToCart = () => {
+    if (!token) {
+      Swal.fire({
+        title: "Login Required",
+        text: "Please login to add items to your cart.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Go to Login",
+        cancelButtonText: "Cancel",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          router.push("/auth/signin");
+        }
+        // ❌ Cancel → do nothing, stay on page
+      });
+      return;
+    }
+  };
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -83,7 +107,7 @@ export function Navbar({ cartCount }: NavbarProps) {
           <Button
             variant="secondary"
             className="relative"
-            onClick={() => router.push("/cart")}
+            onClick={handleAddToCart}
             aria-label="Cart"
           >
             <ShoppingCart />
