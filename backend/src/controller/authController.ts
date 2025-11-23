@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 import { Auth } from "../models/auth";
 import { Enquiry } from "../models/enquiry";
 import crypto from "crypto";
-import { sendResetPasswordEmail } from "../services/emailService";
+import { sendResetPasswordEmail, sendVerificationEmail } from "../services/emailService";
 import { ResetToken } from "../models/resetToken";
 
 // -------------------- SIGNUP --------------------
@@ -68,6 +68,7 @@ export const signup = async (req: Request, res: Response) => {
       message: "Signup successful",
       email: newUser.email,
       role: newUser.role,
+      token, // Include token in response
     });
   } catch (err: any) {
     console.error("Signup error:", err);
@@ -140,6 +141,7 @@ export const signin = async (req: Request, res: Response) => {
       message: "Signin successful",
       role: authUser.role,
       email: authUser.email,
+      token, // Include token in response
       enquiryStatus,
     });
   } catch (err: any) {
@@ -265,6 +267,106 @@ export const resetPassword = async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error("Reset password error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// -------------------- EMAIL VERIFICATION --------------------
+
+// Send verification email
+export const sendEmailVerification = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    // Find user
+    const user = await Auth.query().findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (user.email_verified) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is already verified",
+      });
+    }
+
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Update user with verification token
+    await Auth.query()
+      .patch({
+        email_verification_token: verificationToken,
+        email_verification_expires: expiresAt.toISOString(),
+      })
+      .where("id", user.id);
+
+    // Send verification email
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+    await sendVerificationEmail(email, verificationUrl);
+
+    res.status(200).json({
+      success: true,
+      message: "Verification email sent successfully",
+    });
+  } catch (err: any) {
+    console.error("Send verification email error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Verify email
+export const verifyEmail = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.query;
+
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: "Verification token is required",
+      });
+    }
+
+    // Find user with verification token
+    const user = await Auth.query()
+      .where("email_verification_token", token as string)
+      .where("email_verification_expires", ">", new Date().toISOString())
+      .first();
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired verification token",
+      });
+    }
+
+    // Mark email as verified and clear token
+    await Auth.query()
+      .patch({
+        email_verified: true,
+        email_verification_token: undefined,
+        email_verification_expires: undefined,
+      })
+      .where("id", user.id);
+
+    res.status(200).json({
+      success: true,
+      message: "Email verified successfully",
+    });
+  } catch (err: any) {
+    console.error("Verify email error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };

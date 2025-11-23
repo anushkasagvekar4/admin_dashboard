@@ -11,6 +11,7 @@ import {
   Cookie,
   Menu,
   LogOut,
+  Heart,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ export default function Sidebar() {
   const nav: NavItem[] = [
     { href: "/customer/home", label: "Home", icon: Home },
     { href: "/customer/cart", label: "Cart", icon: ShoppingCart },
+    { href: "/customer/favorites", label: "Favorites", icon: Heart },
     { href: "/customer/orders", label: "Order", icon: CakeIcon },
     {
       // Using only /customer/profile as the profile page will fetch user data

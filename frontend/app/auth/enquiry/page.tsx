@@ -21,37 +21,57 @@ export default function EnquiryPage() {
     phone: "",
     address: "",
     city: "",
+    logo: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
 
   /**
-   * 🟢 Prevent resubmission if user already submitted an enquiry
+   * 🟢 Handle logo file upload
    */
-  // useEffect(() => {
-  //   const checkExisting = async () => {
-  //     try {
-  //       const res = await checkUserEnquiryStatusAPI();
-  //       const { hasEnquiry, status } = res.data;
-
-  //       if (hasEnquiry) {
-  //         // Redirect based on current enquiry status
-  //         if (status === "pending") router.push("/auth/enquiry/enquiry-status");
-  //         else if (status === "approved") router.push("/admin/home");
-  //         else if (status === "rejected")
-  //           router.push("/auth/enquiry/enquiry-status");
-  //       }
-  //     } catch (err) {
-  //       console.warn("No existing enquiry or unauthorized:", err);
-  //     }
-  //   };
-
-  //   checkExisting();
-  // }, [router]);
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setLogoPreview(result);
+        setFormData({ ...formData, logo: result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   /**
-   * 🟢 Handle form change
+   * 🟢 Check if the user already submitted an enquiry
+   */
+  useEffect(() => {
+    const checkExisting = async () => {
+      try {
+        const res = await checkUserEnquiryStatusAPI();
+        const { hasEnquiry, status } = res.data;
+
+        if (hasEnquiry) {
+          if (status === "pending") {
+            router.replace("/auth/enquiry/enquiry-status");
+          } else if (status === "approved") {
+            router.replace("/admin/home");
+          } else if (status === "rejected") {
+            router.replace("/auth/enquiry/enquiry-status");
+          }
+        }
+      } catch (err) {
+        console.warn("No existing enquiry or unauthorized:", err);
+      }
+    };
+
+    checkExisting();
+  }, [router]);
+
+  /**
+   * 🟢 Handle input change
    */
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -60,7 +80,7 @@ export default function EnquiryPage() {
   };
 
   /**
-   * 🟢 Handle submit
+   * 🟢 Handle form submit
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,23 +88,24 @@ export default function EnquiryPage() {
     setError(null);
 
     try {
-      const res = await createEnquiryAPI(formData);
+      await createEnquiryAPI(formData);
       toast.success("Enquiry submitted successfully!", {
         description: "We'll notify you once it's reviewed.",
       });
 
-      // ✅ After submission, go to Thank-You page
       router.push("/auth/enquiry/thank-you");
     } catch (err: any) {
       console.error(err);
       const message =
         err.response?.data?.message || err.message || "Something went wrong";
 
-      // Handle duplicate enquiry error
+      // Handle duplicate enquiry cases
       if (message.includes("pending")) {
-        router.push("/admin/enquiry-status");
+        router.push("/auth/enquiry/enquiry-status");
       } else if (message.includes("approved")) {
         router.push("/admin/home");
+      } else if (message.includes("rejected")) {
+        router.push("/auth/enquiry/enquiry-status");
       }
 
       setError(message);
@@ -188,6 +209,39 @@ export default function EnquiryPage() {
               required
               className="h-11 rounded-xl"
             />
+          </div>
+
+          {/* Shop Logo */}
+          <div>
+            <Label htmlFor="logo">Shop Logo (Optional)</Label>
+            <div className="flex items-center gap-4">
+              <div className="w-20 h-20 rounded-xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-muted/30">
+                {logoPreview ? (
+                  <img
+                    src={logoPreview}
+                    alt="Shop logo preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-center text-muted-foreground">
+                    <div className="text-2xl mb-1">📷</div>
+                    <div className="text-xs">Logo</div>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <Input
+                  id="logo"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="h-11 rounded-xl"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Upload your shop logo (JPG, PNG, max 2MB)
+                </p>
+              </div>
+            </div>
           </div>
 
           <Button disabled={loading} className="w-full h-11 rounded-xl">

@@ -1,17 +1,17 @@
 import { Router } from "express";
-import ensureAuthenticated from "../middleware/Auth";
 import {
-  createOrder,
-  deleteOrder,
   getAllOrders,
   getOrderById,
+  createOrder,
+  deleteOrder,
 } from "../controller/orderController";
+import ensureAuthenticated from "../middleware/Auth";
 
 const orderRouter = Router();
 
-orderRouter.post("/createOrder", ensureAuthenticated, createOrder);
 orderRouter.get("/getAllOrders", ensureAuthenticated, getAllOrders);
-orderRouter.get("/getCakeById/:id", ensureAuthenticated, getOrderById);
+orderRouter.get("/getOrderById/:id", ensureAuthenticated, getOrderById);
+orderRouter.post("/createOrder", ensureAuthenticated, createOrder);
 orderRouter.delete("/deleteOrder/:id", ensureAuthenticated, deleteOrder);
 
 export default orderRouter;

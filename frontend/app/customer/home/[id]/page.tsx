@@ -1,28 +1,49 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/app/store/Store";
 import { getCakes } from "@/app/features/shop_admin/cakes/cakeApi";
 import { addToCart } from "@/app/features/orders/cartSlice";
-import { ArrowLeft, ShoppingCart, Heart } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Heart, Star } from "lucide-react";
 import { toast } from "sonner";
 import { addToCartAPI } from "@/app/features/orders/cartApi";
+import {
+  fetchReviewsByCake,
+  createReview,
+} from "@/app/features/reviews/reviewApi";
 
 export default function CakeDetails() {
   const { id } = useParams();
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
   const { cakes } = useSelector((state: RootState) => state.cakes);
   const { shops } = useSelector((state: RootState) => state.shops);
+  const { role, token } = useSelector((state: RootState) => state.auth);
+  const { selectedCustomer } = useSelector((state: RootState) => state.customers);
+  const {
+    byCakeId,
+    loading: reviewsLoading,
+    creating: reviewSubmitting,
+  } = useSelector((state: RootState) => state.reviews);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({});
+  const [rating, setRating] = useState<number>(0);
+  const [comment, setComment] = useState<string>("");
 
   useEffect(() => {
     if (!cakes.length) dispatch(getCakes());
   }, [dispatch, cakes.length]);
 
+  useEffect(() => {
+    if (id) {
+      dispatch(fetchReviewsByCake(id as string));
+    }
+  }, [dispatch, id]);
+
   const cake = cakes.find((c) => c.id === id);
   const shop = shops.find((s) => s.id === id);
+  const reviews = cake ? byCakeId[cake.id] || [] : [];
 
   useEffect(() => {
     if (cake?.images?.length) setSelectedImage(cake.images[0]);
@@ -49,6 +70,31 @@ export default function CakeDetails() {
 
   const handleMouseLeave = () => {
     setZoomStyle({ transform: "scale(1)", transformOrigin: "center" });
+  };
+
+  const handleSubmitReview = async () => {
+    if (!cake) return;
+    if (rating < 1 || rating > 5) {
+      toast.error("Please select a rating between 1 and 5");
+      return;
+    }
+
+    try {
+      await dispatch(
+        createReview({
+          cakeId: cake.id,
+          rating,
+          comment: comment.trim() || undefined,
+        })
+      ).unwrap();
+      toast.success("Review submitted");
+      setRating(0);
+      setComment("");
+    } catch (err: any) {
+      toast.error(
+        typeof err === "string" ? err : "Failed to submit review"
+      );
+    }
   };
 
   return (
@@ -121,6 +167,13 @@ export default function CakeDetails() {
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               <button
                 onClick={async () => {
+                  // Check if user is authenticated as customer
+                  if (!token || role !== 'customer' || !selectedCustomer) {
+                    toast.error("Please sign in to add items to cart");
+                    router.push('/auth/signin');
+                    return;
+                  }
+
                   try {
                     await dispatch(
                       addToCartAPI({
@@ -167,6 +220,107 @@ export default function CakeDetails() {
                 , this cake can be customized according to your size and design
                 preference. Fresh, soft, and absolutely irresistible!
               </p>
+            </div>
+            <div className="mt-6 bg-gray-50 rounded-2xl shadow-md p-6">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                Customer Reviews
+              </h2>
+              <div className="flex items-center mb-4">
+                <Star className="text-yellow-400 fill-current" size={20} />
+                <span className="ml-2 font-semibold">
+                  {Number(cake.rating || 0).toFixed(1)} / 5
+                </span>
+                <span className="ml-2 text-sm text-gray-500">
+                  ({cake.reviews || 0} reviews)
+                </span>
+              </div>
+
+              {role === "customer" ? (
+                <div className="mb-6">
+                  <p className="text-sm font-medium text-gray-700 mb-2">
+                    Write a review
+                  </p>
+                  <div className="flex items-center gap-2 mb-3">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setRating(value)}
+                        className="focus:outline-none"
+                      >
+                        <Star
+                          size={20}
+                          className={
+                            value <= rating
+                              ? "text-yellow-400 fill-current"
+                              : "text-gray-300"
+                          }
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Share your experience..."
+                    className="w-full border rounded-lg p-2 text-sm mb-3"
+                    rows={3}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSubmitReview}
+                    disabled={reviewSubmitting}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg text-sm"
+                  >
+                    {reviewSubmitting ? "Submitting..." : "Submit Review"}
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 mb-4">
+                  Sign in as a customer to write a review.
+                </p>
+              )}
+
+              {reviewsLoading ? (
+                <p className="text-sm text-gray-500">Loading reviews...</p>
+              ) : reviews && reviews.length > 0 ? (
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <div key={review.id} className="border rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center">
+                          {[1, 2, 3, 4, 5].map((value) => (
+                            <Star
+                              key={value}
+                              size={16}
+                              className={
+                                value <= review.rating
+                                  ? "text-yellow-400 fill-current"
+                                  : "text-gray-300"
+                              }
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {review.customer?.full_name || "Customer"}
+                        </span>
+                      </div>
+                      {review.comment && (
+                        <p className="text-sm text-gray-700">
+                          {review.comment}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">
+                        {new Date(review.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  No reviews yet. Be the first to review!
+                </p>
+              )}
             </div>
           </div>
         </div>

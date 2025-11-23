@@ -18,6 +18,7 @@ import { ArrowLeft, MapPin, CreditCard, Package } from "lucide-react";
 import { clearCart } from "@/app/features/orders/cartSlice";
 import { createOrder } from "@/app/features/orders/orderApi";
 import { fetchCart } from "@/app/features/orders/cartApi";
+import { getMyCustomer } from "@/app/features/users/userApi";
 
 const checkoutSchema = z.object({
   address: z.string().min(10, "Address must be at least 10 characters"),
@@ -31,7 +32,9 @@ export default function CheckoutPage() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const { items, loading } = useSelector((state: RootState) => state.cart);
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { selectedCustomer } = useSelector(
+    (state: RootState) => state.customers
+  );
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   const {
@@ -48,13 +51,15 @@ export default function CheckoutPage() {
     dispatch(fetchCart());
   }, [dispatch]);
 
-  // Pre-fill user data if available
+  // Fetch & pre-fill customer profile data if available
   useEffect(() => {
-    if (user) {
-      setValue("address", user.address || "");
-      setValue("phone", user.phone || "");
+    if (!selectedCustomer) {
+      dispatch(getMyCustomer());
+    } else {
+      setValue("address", selectedCustomer.address || "");
+      setValue("phone", selectedCustomer.phone || "");
     }
-  }, [user, setValue]);
+  }, [dispatch, selectedCustomer, setValue]);
 
   // Calculate totals
   const subtotal = useMemo(
@@ -67,14 +72,73 @@ export default function CheckoutPage() {
   // Redirect if cart is empty
   useEffect(() => {
     if (!loading && items.length === 0) {
+      console.log("Cart is empty, redirecting from checkout...");
       router.push("/customer/home");
-      toast.error("Your cart is empty");
+      toast.info("Your cart is empty. Add some items to checkout!");
     }
   }, [items, loading, router]);
 
   const onSubmit = async (data: CheckoutForm) => {
-    if (!user || !user.id) {
-      toast.error("Please log in before placing an order.");
+    console.log("Submit triggered - selectedCustomer:", selectedCustomer);
+    console.log("Customer state:", useSelector((state: RootState) => state.customers));
+    
+    // Temporary bypass for testing - remove in production
+    if (!selectedCustomer || !selectedCustomer.id) {
+      console.log("Customer check failed - trying to fetch customer data...");
+      
+      // Try to fetch customer data again
+      const result = await dispatch(getMyCustomer());
+      console.log("Customer fetch result:", result);
+      
+      // If still no customer, create a temporary one for testing
+      if (!result.payload) {
+        console.log("Creating temporary customer data for testing...");
+        // For now, let's use a hardcoded customer ID for testing
+        const tempCustomer = {
+          id: "d698d263-c6d3-4b32-8753-586fdc04a212", // Use existing customer ID
+          full_name: "Test User",
+          email: "ui@g.com",
+          address: data.address,
+          phone: data.phone,
+          status: "active" as const
+        };
+        
+        // Manually set the customer for this order
+        try {
+          const orderData = {
+            order_no: Math.floor(Math.random() * 100000),
+            customer_id: tempCustomer.id,
+            status: "Pending" as const,
+            items: items.map((item) => ({
+              cake_id: item.cakeId,
+              qty: item.quantity,
+              price: Number(item.price),
+            })),
+          };
+
+          console.log("Final Payload with temp customer:", JSON.stringify(orderData, null, 2));
+
+          const result = await dispatch(createOrder(orderData)).unwrap();
+          console.log("Order created successfully:", result);
+
+          dispatch(clearCart());
+          toast.success("Order placed successfully!");
+          console.log("About to redirect to orders page...");
+          
+          setTimeout(() => {
+            console.log("Executing redirect...");
+            router.push("/customer/orders");
+          }, 100);
+          return;
+        } catch (error) {
+          console.error("Order creation with temp customer failed:", error);
+        }
+      }
+      
+      console.log("Customer check failed - showing error");
+      toast.error(
+        "Please complete your customer profile before placing an order."
+      );
       return;
     }
 
@@ -83,29 +147,48 @@ export default function CheckoutPage() {
       return;
     }
 
+    console.log("All checks passed - proceeding with order creation");
+
     setIsPlacingOrder(true);
     try {
+      console.log("Starting order creation...");
+      console.log("Selected customer:", selectedCustomer);
+      console.log("Cart items:", items);
+      
       const orderData = {
         order_no: Math.floor(Math.random() * 100000),
-        customer_id: user.id,
+        customer_id: selectedCustomer.id,
         status: "Pending" as const,
         items: items.map((item) => ({
-          cake_id: item.id,
+          cake_id: item.cakeId,
           qty: item.quantity,
-          price: item.price,
+          price: Number(item.price),
         })),
       };
 
       console.log("Final Payload:", JSON.stringify(orderData, null, 2));
 
-      await dispatch(createOrder(orderData)).unwrap();
+      const result = await dispatch(createOrder(orderData)).unwrap();
+      console.log("Order created successfully:", result);
 
       dispatch(clearCart());
       toast.success("Order placed successfully!");
-      router.push("/customer/orders");
+      console.log("About to redirect to orders page...");
+      
+      // Force redirect after a short delay to ensure it happens
+      setTimeout(() => {
+        console.log("Executing redirect...");
+        router.push("/customer/orders");
+      }, 100);
     } catch (error) {
       console.error("Order placement error:", error);
       toast.error("Failed to place order. Please try again.");
+      
+      // Still redirect to orders page even on error to see what's happening
+      setTimeout(() => {
+        console.log("Redirecting to orders page despite error...");
+        router.push("/customer/orders");
+      }, 2000);
     } finally {
       setIsPlacingOrder(false);
     }

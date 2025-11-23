@@ -1,11 +1,34 @@
 import { createSlice } from "@reduxjs/toolkit";
-import {
-  fetchAllOrders,
-  fetchOrderById,
-  createOrder,
-  deleteOrder,
-  Order,
-} from "./orderApi";
+import { fetchAllOrders, fetchOrderById, createOrder, deleteOrder } from "./orderApi";
+
+interface OrderItem {
+  id: string;
+  cake_id: string;
+  qty: number;
+  price: number;
+  cake?: {
+    id: string;
+    cake_name: string;
+    images?: string[];
+  };
+}
+
+interface Order {
+  id: string;
+  orderNo: number;
+  customerId: string;
+  status: "Pending" | "Completed" | "Cancelled";
+  createdAt: string;
+  updatedAt: string;
+  customer?: {
+    id: string;
+    full_name: string;
+    email: string;
+    phone: string;
+    address: string;
+  };
+  items?: OrderItem[];
+}
 
 interface OrderState {
   orders: Order[];
@@ -58,10 +81,18 @@ const orderSlice = createSlice({
       state.error = action.payload as string;
     });
 
-    // Create order
-    builder.addCase(createOrder.fulfilled, (state, action) => {
-      state.orders.unshift(action.payload);
-    });
+    builder
+      .addCase(createOrder.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(createOrder.fulfilled, (state, action) => {
+        state.loading = false;
+        state.orders.push(action.payload);
+      })
+      .addCase(createOrder.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
 
     // Delete order
     builder.addCase(deleteOrder.fulfilled, (state, action) => {

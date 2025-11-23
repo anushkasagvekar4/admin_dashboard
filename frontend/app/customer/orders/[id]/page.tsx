@@ -60,7 +60,7 @@ export default function CustomerTracker() {
       {/* Tracking Steps */}
       <div className="rounded-xl border p-5">
         <SectionHeading
-          title={`Order #${currentOrder.order_no}`}
+          title={`Order #${currentOrder.orderNo}`}
           subtitle={`${itemsList} · ${currentOrder.status}`}
           className="mb-4 text-left"
         />
@@ -110,12 +110,12 @@ export default function CustomerTracker() {
             <tbody>
               {orders.slice(0, 5).map((o) => (
                 <tr key={o.id} className="border-t">
-                  <td className="p-3 font-medium">#{o.order_no}</td>
+                  <td className="p-3 font-medium">#{o.orderNo}</td>
                   <td className="p-3">
                     {o.items?.map((i) => i.cake?.cake_name).join(", ") || "N/A"}
                   </td>
                   <td className="p-3">
-                    {new Date(o.created_at).toLocaleDateString()}
+                    {new Date(o.createdAt).toLocaleDateString()}
                   </td>
                   <td className="p-3">{o.status}</td>
                 </tr>

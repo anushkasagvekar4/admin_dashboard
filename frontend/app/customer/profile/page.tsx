@@ -6,12 +6,17 @@ import { AppDispatch, RootState } from "@/app/store/Store";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import {
   createCustomer,
   getMyCustomer,
   updateMyCustomer,
+  CustomerUpdateData,
 } from "@/app/features/users/userApi";
+import { sendEmailVerificationAPI } from "@/app/api/authApi";
+import { Mail, CheckCircle, AlertCircle, Clock } from "lucide-react";
 
 export default function CustomerProfile() {
   const dispatch = useDispatch<AppDispatch>();
@@ -21,10 +26,11 @@ export default function CustomerProfile() {
 
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState(user || ""); // ✅ set from Redux auth.user
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -40,23 +46,19 @@ export default function CustomerProfile() {
 
           setCustomerId(c.id);
           setFullName(c.full_name || "");
-          // ✅ Always prefer customer email, else fallback to logged-in user's email
-          setEmail(c.email || user || "");
           setPhone(c.phone || "");
           setAddress(c.address || "");
-        } else {
-          setEmail(user || "");
+          setEmailVerified(c.email_verified || false);
         }
       } catch (err) {
         console.log("Error fetching profile:", err);
-        setEmail(user || "");
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchProfile();
-  }, [dispatch, token, user, role]);
+  }, [dispatch, token, role]);
 
   // ✅ Handle Save (create or update)
   const onSave = async (e: React.FormEvent) => {
@@ -67,10 +69,9 @@ export default function CustomerProfile() {
       return;
     }
 
-    // ✅ Ensure email always comes from Redux, never blank
-    const payload = {
-      full_name: user || fullName,
-      email: user || email,
+    // ✅ Email comes from auth, never from form
+    const payload: CustomerUpdateData = {
+      full_name: fullName,
       phone,
       address,
     };
@@ -83,7 +84,12 @@ export default function CustomerProfile() {
         await dispatch(updateMyCustomer(payload)).unwrap();
         toast.success("Profile updated successfully");
       } else {
-        await dispatch(createCustomer(payload)).unwrap();
+        // For creation, we need to include email from auth
+        const createPayload = {
+          ...payload,
+          email: user,
+        };
+        await dispatch(createCustomer(createPayload)).unwrap();
         toast.success("Profile created successfully");
       }
     } catch (err: any) {
@@ -94,69 +100,129 @@ export default function CustomerProfile() {
     }
   };
 
+  const handleSendVerification = async () => {
+    try {
+      setIsSendingVerification(true);
+      await sendEmailVerificationAPI(user);
+      toast.success("Verification email sent! Please check your inbox.");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send verification email");
+    } finally {
+      setIsSendingVerification(false);
+    }
+  };
+
   if (loading || isLoading) return <p>Loading profile...</p>;
   if (!user) return <p>Please log in to view your profile.</p>;
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded-xl shadow-lg">
-      <h1 className="text-3xl font-bold mb-2">Your Profile</h1>
-      <p className="text-gray-500 mb-6">
-        Manage your personal information and delivery address.
-      </p>
+    <div className="max-w-3xl mx-auto p-6 space-y-6">
+      {/* Email Verification Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="w-5 h-5" />
+            Email Information
+          </CardTitle>
+          <CardDescription>
+            Your account email and verification status
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/30">
+            <div>
+              <div className="font-medium text-sm text-muted-foreground">Email Address</div>
+              <div className="font-semibold">{user}</div>
+            </div>
+            <Badge variant={emailVerified ? "default" : "secondary"} className="flex items-center gap-1">
+              {emailVerified ? (
+                <>
+                  <CheckCircle className="w-3 h-3" />
+                  Verified
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="w-3 h-3" />
+                  Not Verified
+                </>
+              )}
+            </Badge>
+          </div>
+          
+          {!emailVerified && (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <Clock className="w-4 h-4 text-amber-600" />
+              <div className="flex-1">
+                <p className="text-sm text-amber-800">
+                  Verify your email to secure your account and receive important notifications.
+                </p>
+              </div>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={handleSendVerification}
+                disabled={isSendingVerification}
+              >
+                {isSendingVerification ? "Sending..." : "Send Verification"}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      <form onSubmit={onSave} className="grid gap-5">
-        <div className="grid gap-1">
-          <Label htmlFor="fullName">Full Name</Label>
-          <Input
-            id="fullName"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className="h-12 rounded-lg border-gray-300"
-            placeholder="Enter your full name"
-          />
-        </div>
+      {/* Profile Information Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Information</CardTitle>
+          <CardDescription>
+            Manage your personal information and delivery address.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={onSave} className="grid gap-5">
+            <div className="grid gap-1">
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input
+                id="fullName"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="h-12 rounded-lg border-gray-300"
+                placeholder="Enter your full name"
+              />
+            </div>
 
-        <div className="grid gap-1">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            readOnly
-            className="h-12 rounded-lg border-gray-300 bg-gray-100 text-gray-600"
-          />
-        </div>
+            <div className="grid gap-1">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="h-12 rounded-lg border-gray-300"
+                placeholder="Enter your phone number"
+              />
+            </div>
 
-        <div className="grid gap-1">
-          <Label htmlFor="phone">Phone</Label>
-          <Input
-            id="phone"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="h-12 rounded-lg border-gray-300"
-            placeholder="Enter your phone number"
-          />
-        </div>
+            <div className="grid gap-1">
+              <Label htmlFor="address">Address</Label>
+              <textarea
+                id="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="min-h-[100px] rounded-lg border bg-gray-50 px-3 py-2 text-sm"
+                placeholder="Enter your delivery address"
+              />
+            </div>
 
-        <div className="grid gap-1">
-          <Label htmlFor="address">Address</Label>
-          <textarea
-            id="address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            className="min-h-[100px] rounded-lg border bg-gray-50 px-3 py-2 text-sm"
-            placeholder="Enter your delivery address"
-          />
-        </div>
-
-        <Button
-          type="submit"
-          className="h-12 w-fit px-6 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-          disabled={isLoading}
-        >
-          {customerId ? "Update Profile" : "Create Profile"}
-        </Button>
-      </form>
+            <Button
+              type="submit"
+              className="h-12 w-fit px-6 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+              disabled={isLoading}
+            >
+              {customerId ? "Update Profile" : "Create Profile"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

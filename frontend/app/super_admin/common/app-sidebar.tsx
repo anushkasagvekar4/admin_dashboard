@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Home, Cookie, Menu, LogOut, CakeIcon } from "lucide-react";
+import { Home, Cookie, Menu, LogOut, CakeIcon, Settings } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ const nav = [
   { href: "/super_admin/enquiries", label: "Enquiries", icon: CakeIcon },
   { href: "/super_admin/shops", label: "Shops", icon: FaShop },
   { href: "/super_admin/customers", label: "Customers", icon: FaUser },
+  { href: "/super_admin/website_settings", label: "Website Settings", icon: Settings },
 ];
 
 interface LinkItemProps {

@@ -26,6 +26,7 @@ import {
   addPreviewImage,
   removePreviewImage,
 } from "@/app/features/shop_admin/cakes/cakeSlice";
+import { useRouter } from "next/navigation";
 
 interface CakeForm {
   cake_name: string;
@@ -47,7 +48,7 @@ export default function AddCake() {
   const [previews, setPreviews] = useState<string[]>([]); // local preview
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]); // local uploaded URLs
   const [uploading, setUploading] = useState(false);
-
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -112,17 +113,10 @@ export default function AddCake() {
     try {
       await dispatch(createCake(cakeData)).unwrap();
       toast.success("Cake added successfully!");
-      reset();
-      setValue("cake_type", "");
-      setPreviews([]);
-      setUploadedUrls([]);
+      router.push("/admin/cakes");
     } catch (err: any) {
       toast.error(err || "Failed to add cake");
     }
-  };
-
-  const handleRemoveImage = (index: number) => {
-    dispatch(removePreviewImage(index));
   };
 
   return (

@@ -19,6 +19,7 @@
     "@neondatabase/serverless": "^1.0.1",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
+    "@types/uuid": "^11.0.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -29,7 +30,8 @@
     "objection": "^3.1.5",
     "pg": "^8.16.3",
     "resend": "^6.3.0",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

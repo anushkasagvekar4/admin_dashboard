@@ -33,3 +33,28 @@ export const resetPasswordAPI = async (
     throw new Error(err.response?.data?.message || "Failed to reset password.");
   }
 };
+
+// -------------------- EMAIL VERIFICATION --------------------
+export const sendEmailVerificationAPI = async (email: string) => {
+  try {
+    const res = await api.post("/auth/send-verification", { email });
+    return res.data;
+  } catch (err: any) {
+    console.error("❌ Send Verification Error:", err);
+    throw new Error(
+      err.response?.data?.message || "Failed to send verification email."
+    );
+  }
+};
+
+export const verifyEmailAPI = async (token: string) => {
+  try {
+    const res = await api.get(`/auth/verify-email?token=${token}`);
+    return res.data;
+  } catch (err: any) {
+    console.error("❌ Verify Email Error:", err);
+    throw new Error(
+      err.response?.data?.message || "Failed to verify email."
+    );
+  }
+};

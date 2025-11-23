@@ -8,8 +8,8 @@ export class OrderItem extends Model {
   cake_id!: string;
   qty!: number;
   price!: number;
-  created_at!: Date;
-  updated_at!: Date;
+  created_at!: string;
+  updated_at!: string;
 
   static tableName = "order_items";
 

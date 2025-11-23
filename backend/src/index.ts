@@ -9,6 +9,9 @@ import shopRouter from "./routes/shopRoutes";
 import enquiryRouter from "./routes/enquiryRouter";
 import orderRouter from "./routes/orderRoutes";
 import cartRouter from "./routes/cartRoutes";
+import superAdminRouter from "./routes/superAdminRoutes";
+import reviewRouter from "./routes/reviewRoutes";
+import websiteSettingsRouter from "./routes/websiteSettingsRoutes";
 
 dotenv.config();
 const app: Application = express();
@@ -30,7 +33,9 @@ app.use("/api/shops", shopRouter);
 app.use("/api/enquiry", enquiryRouter);
 app.use("/api/orders", orderRouter);
 app.use("/api/cart", cartRouter);
-// app.use("/api/orders", orderRouter);
+app.use("/api/super-admin", superAdminRouter);
+app.use("/api/reviews", reviewRouter);
+app.use("/api/website-settings", websiteSettingsRouter);
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

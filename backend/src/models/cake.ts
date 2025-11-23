@@ -12,7 +12,7 @@ export class Cake extends Model {
   flavour?: string;
   category?: string;
   size?: string;
-  noofpeople?: number;
+  no_of_people?: number;
   status!: "active" | "inactive";
   created_at!: Date;
   updated_at!: Date;
@@ -46,7 +46,7 @@ export class Cake extends Model {
       flavour: { type: "string", nullable: true },
       category: { type: "string", nullable: true },
       size: { type: "string", nullable: true },
-      noofpeople: { type: "integer", nullable: true }, // 👈 better as integer
+      no_of_people: { type: "integer", nullable: true }, // 👈 better as integer
       status: {
         type: "string",
         enum: ["active", "inactive"],

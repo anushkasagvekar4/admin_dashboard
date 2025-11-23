@@ -1,39 +1,52 @@
-// models/cart.ts
-import { Model } from "objection";
+import { Model, snakeCaseMappers } from "objection";
 import knex from "../db/knexInstance";
 import { Cake } from "./cake";
 import { Customer } from "./customer";
 
 export class Cart extends Model {
   id!: string;
-  userId!: string;
+  customerId!: string; // ✅ rename to match DB
   cakeId!: string;
   quantity!: number;
-  price!: number; // price at the time of adding
+  price!: number;
   created_at!: Date;
   updated_at!: Date;
 
-  static tableName = "carts";
+  static tableName = "cart"; // ✅ matches DB
+
+  static columnNameMappers = snakeCaseMappers();
 
   static relationMappings = {
     cake: {
       relation: Model.BelongsToOneRelation,
       modelClass: Cake,
       join: {
-        from: "carts.cakeId",
+        from: "cart.cake_id", // ✅ correct table name
         to: "cakes.id",
       },
     },
-    user: {
+    customer: {
+      // ✅ rename from user → customer
       relation: Model.BelongsToOneRelation,
       modelClass: Customer,
       join: {
-        from: "carts.customerId",
-        to: "Customer.id",
+        from: "cart.customer_id", // ✅ correct column name
+        to: "customers.id",
       },
+    },
+  };
+
+  static jsonSchema = {
+    type: "object",
+    required: ["customerId", "cakeId", "quantity", "price"],
+    properties: {
+      id: { type: "string", format: "uuid" },
+      customerId: { type: "string", format: "uuid" },
+      cakeId: { type: "string", format: "uuid" },
+      quantity: { type: "integer", minimum: 1 },
+      price: { type: "number", minimum: 0 },
     },
   };
 }
 
-// Bind knex
 Cart.knex(knex);

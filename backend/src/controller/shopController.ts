@@ -1,6 +1,7 @@
 import { RequestHandler, Response } from "express";
 import { Shop } from "../models/shop";
 import { AuthRequest } from "../middleware/Auth";
+import { Cake } from "../models/cake";
 
 // Get all approved shops
 
@@ -146,6 +147,128 @@ export const toggleShopStatus = async (req: AuthRequest, res: Response) => {
     });
   } catch (err: any) {
     console.error("Toggle shop status error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Public endpoints
+
+// Get all active shops (public access)
+export const getActiveShops: RequestHandler = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 12;
+    const search = (req.query.search as string) || "";
+    const city = (req.query.city as string) || "";
+    const sortBy = (req.query.sortBy as string) || "created_at";
+    const sortOrder = (req.query.sortOrder as string) || "desc";
+
+    let query = Shop.query().where("status", "active");
+
+    if (search) {
+      query = query.where((builder) => {
+        builder
+          .where("shopname", "ilike", `%${search}%`)
+          .orWhere("ownername", "ilike", `%${search}%`)
+          .orWhere("city", "ilike", `%${search}%`);
+      });
+    }
+
+    if (city) {
+      query = query.where("city", "ilike", `%${city}%`);
+    }
+
+    const allowedSortOrders: ("asc" | "desc")[] = ["asc", "desc"];
+    const safeSortOrder: "asc" | "desc" = allowedSortOrders.includes(
+      sortOrder as any
+    )
+      ? (sortOrder as "asc" | "desc")
+      : "desc";
+
+    query = query.orderBy(sortBy, safeSortOrder);
+
+    const offset = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      query.clone().limit(limit).offset(offset),
+      query.clone().resultSize(),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err: any) {
+    console.error("Get active shops error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Get shop with cakes by ID (public access)
+export const getShopWithCakes: RequestHandler = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const shop = await Shop.query().findById(id).where("status", "active");
+    
+    if (!shop) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Shop not found or inactive" });
+    }
+
+    // Get cakes for this shop
+    const cakes = await Cake.query()
+      .where("shopId", id)
+      .where("available", true)
+      .orderBy("created_at", "desc");
+
+    const shopWithCakes = {
+      ...shop,
+      cakes,
+    };
+
+    res.status(200).json({ 
+      success: true, 
+      data: shopWithCakes 
+    });
+  } catch (err: any) {
+    console.error("Get shop with cakes error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Get cakes by shop ID (public access)
+export const getCakesByShop: RequestHandler = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Verify shop exists and is active
+    const shop = await Shop.query().findById(id).where("status", "active");
+    
+    if (!shop) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Shop not found or inactive" });
+    }
+
+    // Get available cakes for this shop
+    const cakes = await Cake.query()
+      .where("shopId", id)
+      .where("available", true)
+      .orderBy("created_at", "desc");
+
+    res.status(200).json({ 
+      success: true, 
+      data: cakes 
+    });
+  } catch (err: any) {
+    console.error("Get cakes by shop error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };

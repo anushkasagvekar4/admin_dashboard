@@ -1,13 +1,14 @@
 // features/shopAdmin/shopAdminApis.ts
 import api from "@/app/utils/axios";
 
-interface EnquiryData {
+export interface EnquiryData {
   shopname: string;
   ownername: string;
   email: string;
   phone: string;
   address: string;
   city: string;
+  logo?: string;
 }
 
 export const createEnquiryAPI = async (data: EnquiryData) => {

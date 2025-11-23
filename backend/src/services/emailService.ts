@@ -14,7 +14,7 @@ export async function sendEmail({
   try {
     const response = await resend.emails.send({
       from: "CakeHaven <onboarding@resend.dev>", // temporary dev sender
-      to,
+      to: "anushkasagvekar4@gmail.com",
       subject,
       html,
     });
@@ -73,6 +73,29 @@ export async function sendEnquiryApprovedEmail(to: string, shopName: string) {
 }
 
 /**
+ * ✅ Email Verification
+ */
+export async function sendVerificationEmail(to: string, verificationUrl: string) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <h2 style="color: #2a9d8f;">Verify Your CakeHaven Email</h2>
+      <p>Thank you for signing up! Please click the button below to verify your email address:</p>
+      <a href="${verificationUrl}" style="display: inline-block; background-color: #2a9d8f; color: #fff; padding: 10px 18px; text-decoration: none; border-radius: 6px;">Verify Email</a>
+      <p>This verification link will expire in 24 hours.</p>
+      <p>If you didn’t create an account, please ignore this email.</p>
+      <br/>
+      <p>– The CakeHaven Team 🍰</p>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+    subject: "Verify your CakeHaven email address",
+    html,
+  });
+}
+
+/**
  * ❌ Shop Enquiry Rejected Email
  */
 export async function sendEnquiryRejectedEmail(
@@ -84,7 +107,7 @@ export async function sendEnquiryRejectedEmail(
     <div style="font-family: Arial, sans-serif; line-height: 1.6;">
       <h2 style="color: #e76f51;">😞 Your Shop Enquiry Was Rejected</h2>
       <p>Dear ${shopName},</p>
-      <p>We’re sorry to inform you that your shop enquiry was <strong>not approved</strong> at this time.</p>
+      <p>We're sorry to inform you that your shop enquiry was <strong>not approved</strong> at this time.</p>
       ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
       <p>You can update your details and resubmit your enquiry for review.</p>
       <a href="${

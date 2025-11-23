@@ -10,6 +10,7 @@ import {
 
 interface CartItem {
   id: string;
+  cakeId: string;
   cake_name: string;
   price: number;
   image: string;
@@ -65,9 +66,10 @@ const cartSlice = createSlice({
       state.loading = false;
       state.items = action.payload.map((item: APICartItem) => ({
         id: item.id,
+        cakeId: item.cakeId,
         cake_name: item.cake?.cake_name || "",
         price: item.price,
-        image: item.cake?.image || "",
+        image: item.cake?.images?.[0] || "/placeholder.png",
         quantity: item.quantity,
       }));
     });
@@ -80,12 +82,19 @@ const cartSlice = createSlice({
     builder.addCase(addToCartAPI.fulfilled, (state, action) => {
       const item = action.payload;
       const existing = state.items.find((i) => i.id === item.id);
-      if (!existing) {
+      if (existing) {
+        existing.quantity = item.quantity;
+        existing.price = item.price;
+        existing.cake_name = item.cake?.cake_name || existing.cake_name;
+        existing.image =
+          item.cake?.images?.[0] || existing.image || "/placeholder.png";
+      } else {
         state.items.push({
           id: item.id,
+          cakeId: item.cakeId,
           cake_name: item.cake?.cake_name || "",
           price: item.price,
-          image: item.cake?.image || "",
+          image: item.cake?.images?.[0] || "/placeholder.png",
           quantity: item.quantity,
         });
       }

@@ -5,6 +5,9 @@ import {
   getShops,
   toggleShopStatus,
   updateShop,
+  getActiveShops,
+  getShopWithCakes,
+  getCakesByShop,
 } from "../controller/shopController";
 import { signin, signup } from "../controller/authController";
 
@@ -23,5 +26,10 @@ shopRouter.patch(
   toggleShopStatus
 );
 shopRouter.patch("/updateShop/:id", ensureAuthenticated, updateShop);
+
+// Public routes (no authentication required)
+shopRouter.get("/public/getActiveShops", getActiveShops);
+shopRouter.get("/public/getShopWithCakes/:id", getShopWithCakes);
+shopRouter.get("/public/getCakesByShop/:id", getCakesByShop);
 
 export default shopRouter;

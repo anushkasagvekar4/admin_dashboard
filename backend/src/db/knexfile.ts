@@ -18,7 +18,7 @@ const config: { [key: string]: Knex.Config } = {
       database: process.env.PGDATABASE,
       ssl: { rejectUnauthorized: false },
     },
-    pool: { min: 0, max: 10 },
+    pool: { min: 2, max: 10 },
     migrations: {
       directory: "./migrations",
       tableName: "knex_migrations",

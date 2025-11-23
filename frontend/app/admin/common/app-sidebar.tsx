@@ -15,6 +15,7 @@ import {
   ShoppingBag,
   User2,
   Cake,
+  Star,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -25,10 +26,11 @@ import { logoutUser } from "@/app/features/auth/authApi";
 import { useRouter } from "next/navigation";
 const nav = [
   { href: "/admin/home", label: "Home", icon: Home },
-  { href: "/admin/customers", label: "Customers", icon: User2 },
-  { href: "/admin/add_cakes", label: "Add Cake", icon: Cake },
+  // { href: "/admin/customers", label: "Customers", icon: User2 },
+  // { href: "/admin/add_cakes", label: "Add Cake", icon: Cake },
   { href: "/admin/cakes", label: "Cakes", icon: Cake },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/reviews", label: "Reviews", icon: Star },
   { href: "/admin/profile", label: "Profile", icon: FaShop },
   // { href: "/customer/tracker", label: "Tracker", icon: Truck },
   // { href: "/super_admin/all_cakes", label: "Profile", icon: User },

@@ -9,6 +9,7 @@ export class Enquiry extends Model {
   phone!: string;
   address!: string;
   city!: string;
+  logo?: string;
   status!: "pending" | "approved" | "rejected";
   reason?: string;
   created_at!: Date;
@@ -27,6 +28,7 @@ export class Enquiry extends Model {
       phone: { type: "string" },
       address: { type: "string" },
       city: { type: "string" },
+      logo: { type: "string" },
       status: { type: "string", enum: ["pending", "approved", "rejected"] },
       reason: { type: "string" },
       created_at: { type: "string", format: "date-time" },

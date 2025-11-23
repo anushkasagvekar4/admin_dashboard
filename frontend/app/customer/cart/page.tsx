@@ -25,7 +25,7 @@ export default function CustomerCart() {
   // Fetch cart on mount
   useEffect(() => {
     dispatch(fetchCart());
-  }, [dispatch]);
+  }, []);
 
   // Update quantity
   const updateQty = async (id: string, qty: number) => {

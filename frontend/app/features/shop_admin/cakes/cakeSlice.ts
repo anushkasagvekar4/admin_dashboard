@@ -21,6 +21,8 @@ interface Cake {
   status: "active" | "inactive";
   created_at?: string;
   updated_at?: string;
+  rating?: number;
+  reviews?: number;
 }
 
 interface CakeState {
@@ -88,20 +90,6 @@ const cakeSlice = createSlice({
       state.cakes = action.payload;
     });
     builder.addCase(getCakes.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload as string;
-    });
-
-    // GET BY ID
-    builder.addCase(getCakeById.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    });
-    builder.addCase(getCakeById.fulfilled, (state, action) => {
-      state.loading = false;
-      state.selectedCake = action.payload || null;
-    });
-    builder.addCase(getCakeById.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload as string;
     });

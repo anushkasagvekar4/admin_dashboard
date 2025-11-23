@@ -7,6 +7,7 @@ export const createCake = async (
   req: Request & { user?: any },
   res: Response
 ) => {
+  console.log(req.user);
   try {
     if (!req.user || req.user.role !== "shop_admin") {
       return res.status(403).json({
@@ -23,7 +24,7 @@ export const createCake = async (
       flavour,
       category,
       size,
-      noofpeople,
+      no_of_people,
       status,
     } = req.body;
     console.log(req.body);
@@ -43,7 +44,7 @@ export const createCake = async (
       flavour,
       category,
       size,
-      noofpeople,
+      no_of_people,
       status: status || "active",
       shopId: req.user.id,
     });
@@ -63,9 +64,29 @@ export const createCake = async (
 };
 
 // ====================== GET ALL CAKES ======================
-export const getAllCakes = async (req: Request, res: Response) => {
+export const getAllCakes = async (req: AuthRequest, res: Response) => {
   try {
-    const cakes = await Cake.query();
+    const { role, id: userId } = req.user!;
+    const knexInstance = Cake.knex();
+
+    let query = Cake.query()
+      .select("cakes.*")
+      .leftJoin("reviews", "reviews.cake_id", "cakes.id")
+      .groupBy("cakes.id")
+      .select(
+        knexInstance.raw("COALESCE(AVG(reviews.rating), 0)::float as rating"),
+        knexInstance.raw("COUNT(reviews.id) as reviews")
+      );
+
+    // Filter cakes based on user role
+    if (role === "shop_admin") {
+      // Shop admins can only see their own cakes
+      query = query.where("cakes.shopId", userId);
+    }
+    // Super admins can see all cakes (no additional filter needed)
+    // Customers can see all active cakes (if needed, add status filter here)
+
+    const cakes = await query;
 
     res.status(200).json({ success: true, data: cakes });
   } catch (err: any) {
@@ -78,7 +99,19 @@ export const getAllCakes = async (req: Request, res: Response) => {
 export const getCakeById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const cake = await Cake.query().findById(id);
+    const knexInstance = Cake.knex();
+
+    const cake = await Cake.query()
+      .select("cakes.*")
+      .leftJoin("reviews", "reviews.cake_id", "cakes.id")
+      .where("cakes.id", id)
+      .groupBy("cakes.id")
+      .select(
+        knexInstance.raw("COALESCE(AVG(reviews.rating), 0)::float as rating"),
+        knexInstance.raw("COUNT(reviews.id) as reviews")
+      )
+      .first();
+
     if (!cake) {
       return res
         .status(404)
@@ -128,7 +161,7 @@ export const updateCake = async (req: AuthRequest, res: Response) => {
       flavour,
       category,
       size,
-      noofpeople,
+      no_of_people,
       status,
     } = req.body;
 
@@ -140,7 +173,7 @@ export const updateCake = async (req: AuthRequest, res: Response) => {
       flavour,
       category,
       size,
-      noofpeople,
+      no_of_people,
       status,
     });
 

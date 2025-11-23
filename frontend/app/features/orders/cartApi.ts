@@ -6,7 +6,7 @@ export interface CartItem {
   userId: string;
   cakeId: string;
   cake_name?: string;
-  image?: string;
+  images?: string[];
   quantity: number;
   price: number;
   created_at?: string;
@@ -14,7 +14,7 @@ export interface CartItem {
   cake?: {
     id: string;
     cake_name: string;
-    image: string;
+    images?: string[];
     price: number;
   };
 }
@@ -27,6 +27,7 @@ export const fetchCart = createAsyncThunk<
 >("cart/fetchCart", async (_, { rejectWithValue }) => {
   try {
     const response = await api.get("/cart/getCart");
+    console.log(response);
     return response.data;
   } catch (error: any) {
     return rejectWithValue(
@@ -43,6 +44,7 @@ export const addToCartAPI = createAsyncThunk<
 >("cart/addToCart", async (payload, { rejectWithValue }) => {
   try {
     const response = await api.post("/cart/addToCart", payload);
+    console.log("cart", response);
     // ✅ Return the actual cart item, not the wrapper object
     return response.data.data;
   } catch (error: any) {

@@ -9,6 +9,7 @@ export interface BackendCustomer {
   address: string;
   phone: string;
   status: "active" | "inactive";
+  email_verified?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -17,6 +18,13 @@ export interface BackendCustomer {
 export interface CustomerData {
   full_name: string;
   email: string;
+  address: string;
+  phone: string;
+}
+
+// Data sent from frontend (without email - for updates)
+export interface CustomerUpdateData {
+  full_name: string;
   address: string;
   phone: string;
 }
@@ -59,7 +67,7 @@ export const getMyCustomer = createAsyncThunk<
 // ✅ UPDATE Current Logged-in Customer
 export const updateMyCustomer = createAsyncThunk<
   BackendCustomer,
-  Partial<CustomerData>,
+  CustomerUpdateData,
   { rejectValue: string }
 >("customers/updateMyCustomer", async (data, { rejectWithValue }) => {
   try {

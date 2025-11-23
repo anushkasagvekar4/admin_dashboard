@@ -7,8 +7,8 @@ export class Order extends Model {
   order_no!: number;
   customer_id!: string;
   status!: "Pending" | "Completed" | "Cancelled";
-  created_at!: Date;
-  updated_at!: Date;
+  created_at!: string;
+  updated_at!: string;
 
   static tableName = "orders";
 

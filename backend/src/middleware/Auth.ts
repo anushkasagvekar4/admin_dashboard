@@ -14,8 +14,16 @@ const ensureAuthenticated = (
   res: Response,
   next: NextFunction
 ) => {
-  // ✅ Read token from cookies instead of headers
-  const token = req.cookies?.token;
+  // ✅ Read token from cookies first, then fallback to Authorization header
+  let token = req.cookies?.token;
+  
+  // If no token in cookies, check Authorization header
+  if (!token && req.headers.authorization) {
+    const authHeader = req.headers.authorization;
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    }
+  }
 
   if (!token) {
     return res.status(401).json({ message: "Unauthorized: No token found" });

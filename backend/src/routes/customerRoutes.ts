@@ -31,9 +31,9 @@ customerRouter.get(
   getCustomerById
 );
 customerRouter.get("/getAllCustomers", ensureAuthenticated, getAllCustomers);
-customerRouter.get("getMyCustomer/me", ensureAuthenticated, getMyCustomer);
+customerRouter.get("/getMyCustomer/me", ensureAuthenticated, getMyCustomer);
 customerRouter.patch(
-  "updateMyCustomer/me",
+  "/updateMyCustomer/me",
   ensureAuthenticated,
   updateMyCustomer
 );

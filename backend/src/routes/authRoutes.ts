@@ -5,6 +5,8 @@ import {
   resetPassword,
   signin,
   signup,
+  sendEmailVerification,
+  verifyEmail,
 } from "../controller/authController";
 import ensureAuthenticated from "../middleware/Auth";
 
@@ -15,5 +17,7 @@ authRouter.post("/signin", signin);
 authRouter.post("/logout", logout);
 authRouter.post("/forgotPassword", forgotPassword);
 authRouter.post("/resetPassword", resetPassword);
+authRouter.post("/send-verification", sendEmailVerification);
+authRouter.get("/verify-email", verifyEmail);
 
 export default authRouter;
