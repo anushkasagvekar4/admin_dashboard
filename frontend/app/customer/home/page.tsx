@@ -1,6 +1,6 @@
 "use client";
-import React, { useEffect } from "react";
-import { Heart, ShoppingBag, Star, Filter, Search } from "lucide-react";
+import React, { useEffect, useState, useMemo } from "react";
+import { Heart, ShoppingBag, Star, Filter, Search, X } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { getCakes } from "@/app/features/shop_admin/cakes/cakeApi";
 import { AppDispatch, RootState } from "@/app/store/Store";
@@ -20,83 +20,90 @@ const CustomerDashboard: React.FC = () => {
     0
   );
 
-  const [selectedCategory, setSelectedCategory] = React.useState("All"); // Filter States
-  const [showFilters, setShowFilters] = React.useState(false);
+  // Filter States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [showFilters, setShowFilters] = useState(false);
+  const [minPrice, setMinPrice] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(2000);
+  const [minRating, setMinRating] = useState(0);
+  const [egglessOnly, setEgglessOnly] = useState(false);
+  const [flavor, setFlavor] = useState("All");
+  const [weight, setWeight] = useState("All");
+  const [delivery, setDelivery] = useState("All");
+  const [sortBy, setSortBy] = useState("None");
+  const [favorites, setFavorites] = useState<number[]>([]);
 
-  const [minPrice, setMinPrice] = React.useState(0);
-  const [maxPrice, setMaxPrice] = React.useState(2000);
+  // Load favorites from localStorage
+  useEffect(() => {
+    const storedFavorites = JSON.parse(localStorage.getItem(`favorites_${user || 'guest'}`) || '[]');
+    setFavorites(storedFavorites.map((fav: any) => fav.cakeId));
+  }, [user]);
 
-  const [minRating, setMinRating] = React.useState(0);
+  // Memoized filtered cakes
+  const filteredCakes = useMemo(() => {
+    let result = cakes;
 
-  const [egglessOnly, setEgglessOnly] = React.useState(false);
+    // Search filter
+    if (searchQuery) {
+      result = result.filter(cake => 
+        (cake.cake_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ("Local Bakery").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (cake.flavour || "").toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
 
-  const [flavor, setFlavor] = React.useState("All");
+    // Category Filter
+    if (selectedCategory !== "All") {
+      result = result.filter(cake => cake.category === selectedCategory);
+    }
 
-  const [weight, setWeight] = React.useState("All");
+    // Price Filter
+    result = result.filter(cake => {
+      const price = Number(cake.price);
+      return price >= minPrice && price <= maxPrice;
+    });
 
-  const [delivery, setDelivery] = React.useState("All");
+    // Rating Filter
+    result = result.filter(cake => (cake.rating || 0) >= minRating);
 
-  const [sortBy, setSortBy] = React.useState("None");
+    // Eggless Filter
+    if (egglessOnly) {
+      result = result.filter(cake => cake.isEggless);
+    }
 
-  const [favorites, setFavorites] = React.useState<number[]>([]);
+    // Flavor Filter
+    if (flavor !== "All") {
+      result = result.filter(cake => cake.flavour === flavor);
+    }
 
-  let filteredCakes = cakes;
+    // Cake Weight Filter
+    if (weight !== "All") {
+      result = result.filter(cake => cake.weight === weight);
+    }
 
-  // Category Filter
-  if (selectedCategory !== "All") {
-    filteredCakes = filteredCakes.filter(
-      (cake) => cake.category === selectedCategory
-    );
-  }
+    // Delivery Filter
+    if (delivery === "Same Day") {
+      result = result.filter(cake => cake.sameDayDelivery === true);
+    }
+    if (delivery === "Midnight") {
+      result = result.filter(cake => cake.midnightDelivery === true);
+    }
 
-  // Price Filter
-  filteredCakes = filteredCakes.filter(
-    (cake) => Number(cake.price) >= minPrice && Number(cake.price) <= maxPrice
-  );
+    // Sorting
+    if (sortBy === "PriceLow") {
+      result = [...result].sort((a, b) => a.price - b.price);
+    } else if (sortBy === "PriceHigh") {
+      result = [...result].sort((a, b) => b.price - a.price);
+    } else if (sortBy === "Rating") {
+      result = [...result].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    }
 
-  // Rating Filter
-  filteredCakes = filteredCakes.filter(
-    (cake) => (cake.rating || 0) >= minRating
-  );
-
-  // Eggless Filter
-  if (egglessOnly) {
-    filteredCakes = filteredCakes.filter((cake) => cake.isEggless);
-  }
-
-  // Flavor Filter
-  if (flavor !== "All") {
-    filteredCakes = filteredCakes.filter((cake) => cake.flavor === flavor);
-  }
-
-  // Cake Weight Filter
-  if (weight !== "All") {
-    filteredCakes = filteredCakes.filter((cake) => cake.weight === weight);
-  }
-
-  // Delivery Filter
-  if (delivery === "Same Day") {
-    filteredCakes = filteredCakes.filter(
-      (cake) => cake.sameDayDelivery === true
-    );
-  }
-  if (delivery === "Midnight") {
-    filteredCakes = filteredCakes.filter(
-      (cake) => cake.midnightDelivery === true
-    );
-  }
-
-  // Sorting
-  if (sortBy === "PriceLow") {
-    filteredCakes = [...filteredCakes].sort((a, b) => a.price - b.price);
-  }
-  if (sortBy === "PriceHigh") {
-    filteredCakes = [...filteredCakes].sort((a, b) => b.price - a.price);
-  }
-  if (sortBy === "Rating") {
-    filteredCakes = [...filteredCakes].sort((a, b) => b.rating - a.rating);
-  }
+    return result;
+  }, [cakes, searchQuery, selectedCategory, minPrice, maxPrice, minRating, egglessOnly, flavor, weight, delivery, sortBy]);
   const clearFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory("All");
     setMinPrice(0);
     setMaxPrice(2000);
     setMinRating(0);
@@ -144,7 +151,7 @@ const CustomerDashboard: React.FC = () => {
       // Show success message
       await Swal.fire({
         title: "Added to Cart!",
-        text: `${cake.cake_name || cake.name} has been added to your cart.`,
+        text: `${cake.cake_name} has been added to your cart.`,
         icon: "success",
         confirmButtonColor: "#3085d6",
       });
@@ -168,7 +175,11 @@ const CustomerDashboard: React.FC = () => {
     
     // Check if already in favorites
     if (existingFavorites.some((fav: any) => fav.cakeId === cake.id)) {
-      toast.error("This item is already in your favorites");
+      // Remove from favorites
+      const updatedFavorites = existingFavorites.filter((fav: any) => fav.cakeId !== cake.id);
+      localStorage.setItem(`favorites_${user || 'guest'}`, JSON.stringify(updatedFavorites));
+      setFavorites(updatedFavorites.map((fav: any) => fav.cakeId));
+      toast.error("Removed from favorites");
       return;
     }
 
@@ -176,7 +187,7 @@ const CustomerDashboard: React.FC = () => {
     const favoriteItem = {
       id: `fav_${Date.now()}`,
       cakeId: cake.id,
-      cake_name: cake.cake_name || cake.name,
+      cake_name: cake.cake_name,
       price: Number(cake.price),
       image: cake.images?.[0] || "/placeholder.png",
       added_at: new Date().toISOString(),
@@ -184,6 +195,7 @@ const CustomerDashboard: React.FC = () => {
 
     const updatedFavorites = [...existingFavorites, favoriteItem];
     localStorage.setItem(`favorites_${user || 'guest'}`, JSON.stringify(updatedFavorites));
+    setFavorites(updatedFavorites.map((fav: any) => fav.cakeId));
     
     toast.success("Added to favorites!");
   };
@@ -197,64 +209,68 @@ const CustomerDashboard: React.FC = () => {
     "Sugar Free",
   ];
 
-  const CakeCard = ({ cake }: { cake: any }) => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow group">
-      <div className="relative">
-        <img
-          src={cake.images?.[0] || cake.image}
-          alt={cake.cake_name || cake.name}
-          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-
-        {/* ❤️ Favorite toggle */}
-        <button
-          onClick={() => handleAddToFavorites(cake)}
-          className="absolute top-3 right-3 p-2 bg-white/80 rounded-full hover:bg-white transition"
-        >
-          <Heart
-            size={16}
-            className="text-gray-600 hover:text-red-500"
+  const CakeCard = ({ cake }: { cake: any }) => {
+    const isFavorite = favorites.includes(cake.id);
+    
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow group">
+        <div className="relative">
+          <img
+            src={cake.images?.[0] || "/placeholder-cake.jpg"}
+            alt={cake.cake_name}
+            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
           />
-        </button>
 
-        {cake.isEggless && (
-          <span className="absolute top-3 left-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-            Eggless
-          </span>
-        )}
-      </div>
+          {/* ❤️ Favorite toggle */}
+          <button
+            onClick={() => handleAddToFavorites(cake)}
+            className="absolute top-3 right-3 p-2 bg-white/80 rounded-full hover:bg-white transition"
+          >
+            <Heart
+              size={16}
+              className={isFavorite ? "text-red-500 fill-red-500" : "text-gray-600 hover:text-red-500"}
+            />
+          </button>
 
-      <div className="p-4">
-        <h3 className="font-semibold text-gray-900 mb-1">
-          {cake.cake_name || cake.name}
-        </h3>
-        <p className="text-sm text-gray-600 mb-2">
-          {cake.shop || "Local Bakery"}
-        </p>
-
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center">
-            <Star className="text-yellow-400 fill-current" size={16} />
-            <span className="text-sm ml-1">{cake.rating || "4.5"}</span>
-          </div>
-          <span className="text-lg font-bold">₹{cake.price}</span>
+          {cake.isEggless && (
+            <span className="absolute top-3 left-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+              Eggless
+            </span>
+          )}
         </div>
 
-        <button
-          onClick={() => handleAddToCart(cake)}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
-        >
-          Add to Cart
-        </button>
+        <div className="p-4">
+          <h3 className="font-semibold text-gray-900 mb-1">
+            {cake.cake_name}
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            Local Bakery
+          </p>
 
-        <Link href={`/customer/home/${cake.id}`}>
-          <button className="w-full mt-2 border border-blue-600 text-blue-600 py-2 rounded-lg hover:bg-blue-50">
-            View Details
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center">
+              <Star className="text-yellow-400 fill-current" size={16} />
+              <span className="text-sm ml-1">{cake.rating || "4.5"}</span>
+            </div>
+            <span className="text-lg font-bold">₹{cake.price}</span>
+          </div>
+
+          <button
+            onClick={() => handleAddToCart(cake)}
+            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+          >
+            Add to Cart
           </button>
-        </Link>
+
+          <Link href={`/customer/home/${cake.id}`}>
+            <button className="w-full mt-2 border border-blue-600 text-blue-600 py-2 rounded-lg hover:bg-blue-50">
+              View Details
+            </button>
+          </Link>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-8">
@@ -271,8 +287,18 @@ const CustomerDashboard: React.FC = () => {
           <input
             type="text"
             placeholder="Search for cakes, bakeries..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-12 pr-4 py-3 rounded-lg text-gray-900"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-4 top-3 text-gray-400 hover:text-gray-600"
+            >
+              <X size={20} />
+            </button>
+          )}
         </div>
       </div>
 

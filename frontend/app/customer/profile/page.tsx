@@ -31,6 +31,8 @@ export default function CustomerProfile() {
   const [isLoading, setIsLoading] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [profileExists, setProfileExists] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -49,6 +51,8 @@ export default function CustomerProfile() {
           setPhone(c.phone || "");
           setAddress(c.address || "");
           setEmailVerified(c.email_verified || false);
+          setProfileExists(true);
+          setIsEditMode(false);
         }
       } catch (err) {
         console.log("Error fetching profile:", err);
@@ -83,6 +87,7 @@ export default function CustomerProfile() {
       if (customerId) {
         await dispatch(updateMyCustomer(payload)).unwrap();
         toast.success("Profile updated successfully");
+        setIsEditMode(false);
       } else {
         // For creation, we need to include email from auth
         const createPayload = {
@@ -91,12 +96,26 @@ export default function CustomerProfile() {
         };
         await dispatch(createCustomer(createPayload)).unwrap();
         toast.success("Profile created successfully");
+        setProfileExists(true);
+        setIsEditMode(false);
       }
     } catch (err: any) {
       console.error("Error saving profile:", err);
       toast.error(err?.message || "Failed to save profile");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setIsEditMode(true);
+  };
+
+  const handleCancel = () => {
+    setIsEditMode(false);
+    // Reset form to current values
+    if (profileExists) {
+      // Values are already set from the API call
     }
   };
 
@@ -179,48 +198,95 @@ export default function CustomerProfile() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={onSave} className="grid gap-5">
-            <div className="grid gap-1">
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input
-                id="fullName"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="h-12 rounded-lg border-gray-300"
-                placeholder="Enter your full name"
-              />
-            </div>
+          {!profileExists || isEditMode ? (
+            <form onSubmit={onSave} className="grid gap-5">
+              <div className="grid gap-1">
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="h-12 rounded-lg border-gray-300"
+                  placeholder="Enter your full name"
+                  required
+                />
+              </div>
 
-            <div className="grid gap-1">
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="h-12 rounded-lg border-gray-300"
-                placeholder="Enter your phone number"
-              />
-            </div>
+              <div className="grid gap-1">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="h-12 rounded-lg border-gray-300"
+                  placeholder="Enter your phone number"
+                  required
+                />
+              </div>
 
-            <div className="grid gap-1">
-              <Label htmlFor="address">Address</Label>
-              <textarea
-                id="address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="min-h-[100px] rounded-lg border bg-gray-50 px-3 py-2 text-sm"
-                placeholder="Enter your delivery address"
-              />
-            </div>
+              <div className="grid gap-1">
+                <Label htmlFor="address">Address</Label>
+                <textarea
+                  id="address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="min-h-[100px] rounded-lg border bg-gray-50 px-3 py-2 text-sm"
+                  placeholder="Enter your delivery address"
+                  required
+                />
+              </div>
 
-            <Button
-              type="submit"
-              className="h-12 w-fit px-6 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-              disabled={isLoading}
-            >
-              {customerId ? "Update Profile" : "Create Profile"}
-            </Button>
-          </form>
+              <div className="flex gap-3">
+                <Button
+                  type="submit"
+                  className="h-12 px-6 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Saving..." : (customerId ? "Update Profile" : "Create Profile")}
+                </Button>
+                {profileExists && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-12 px-6 rounded-lg"
+                    onClick={handleCancel}
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </form>
+          ) : (
+            <div className="space-y-6">
+              {/* Display Mode */}
+              <div className="grid gap-4">
+                <div className="p-4 rounded-lg border bg-gray-50">
+                  <div className="font-medium text-sm text-gray-600 mb-1">Full Name</div>
+                  <div className="font-semibold text-lg">{fullName || "Not provided"}</div>
+                </div>
+                
+                <div className="p-4 rounded-lg border bg-gray-50">
+                  <div className="font-medium text-sm text-gray-600 mb-1">Phone Number</div>
+                  <div className="font-semibold text-lg">{phone || "Not provided"}</div>
+                </div>
+                
+                <div className="p-4 rounded-lg border bg-gray-50">
+                  <div className="font-medium text-sm text-gray-600 mb-1">Delivery Address</div>
+                  <div className="font-semibold text-lg whitespace-pre-wrap">{address || "Not provided"}</div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleEdit}
+                  className="h-12 px-6 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Update Profile
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
