@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -134,17 +134,17 @@ export default function OrdersPage() {
     : (directApiData?.data || []);
 
   const filteredOrders = user
-    ? ordersArray.filter((order) => {
+    ? ordersArray.filter((order: Order) => {
         // Check nested customer email
         if (order.customer?.email === user) return true;
         
         // Check root level customer fields (for backward compatibility)
-        if ((order as any).customerEmail === user) return true;
-        if ((order as any).customer_email === user) return true;
+        if (order.customerEmail === user) return true;
+        if (order.customer_email === user) return true;
         
         // Check if customer data is null but we have other customer info
-        if (!order.customer && (order as any).customerEmail === user) return true;
-        if (!order.customer && (order as any).customer_email === user) return true;
+        if (!order.customer && order.customerEmail === user) return true;
+        if (!order.customer && order.customer_email === user) return true;
         
         // For now, show all orders if customer data is missing (temporary fix)
         if (!order.customer) {
@@ -219,7 +219,7 @@ export default function OrdersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOrders.map((order) => (
+                  {filteredOrders.map((order: Order) => (
                     <tr key={order.id} className="border-b hover:bg-gray-50">
                       <td className="p-3 font-medium">#{order.orderNo || 'N/A'}</td>
                       <td className="p-3">
@@ -229,7 +229,7 @@ export default function OrdersPage() {
                       </td>
                       <td className="p-3 font-semibold">
                         ₹{order.items
-                          ? order.items.reduce((sum, i) => sum + ((i.price || 0) * (i.qty || 0)), 0).toFixed(2)
+                          ? order.items.reduce((sum: number, i: OrderItem) => sum + ((i.price || 0) * (i.qty || 0)), 0).toFixed(2)
                           : "0.00"}
                       </td>
                       <td className="p-3">
@@ -276,7 +276,7 @@ export default function OrdersPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredOrders.map((order) => (
+          {filteredOrders.map((order: Order) => (
             <Card key={order.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle className="flex justify-between items-center">
@@ -297,7 +297,7 @@ export default function OrdersPage() {
                     <p className="font-semibold text-lg">
                       Total: ₹
                       {order.items
-                        ? order.items.reduce((sum, i) => sum + ((i.price || 0) * (i.qty || 0)), 0).toFixed(2)
+                        ? order.items.reduce((sum: number, i: OrderItem) => sum + ((i.price || 0) * (i.qty || 0)), 0).toFixed(2)
                         : "0.00"}
                     </p>
                     <p className="text-sm text-gray-500">
