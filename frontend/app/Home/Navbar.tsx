@@ -12,11 +12,12 @@ import { useSelector } from "react-redux";
 import { RootState } from "../store/Store";
 interface NavbarProps {
   cartCount: number;
+  viewMode?: "cakes" | "shops";
+  onViewModeChange?: (mode: "cakes" | "shops") => void;
 }
 
-export function Navbar({ cartCount }: NavbarProps) {
+export function Navbar({ cartCount, viewMode = "cakes", onViewModeChange }: NavbarProps) {
   const router = useRouter();
-  const [type, setType] = useState<"cakes" | "shops">("cakes");
   const [query, setQuery] = useState("");
   const token = useSelector((state: RootState) => state.auth.token);
 
@@ -43,8 +44,13 @@ export function Navbar({ cartCount }: NavbarProps) {
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const params = new URLSearchParams({ type, q: query }).toString();
-    router.push(`/search?${params}`);
+    if (viewMode === "shops") {
+      // Navigate to shops page with search query
+      router.push(`/shops?q=${encodeURIComponent(query)}`);
+    } else {
+      // Navigate to home page with search query for cakes
+      router.push(`/?q=${encodeURIComponent(query)}`);
+    }
   };
 
   return (
@@ -68,10 +74,10 @@ export function Navbar({ cartCount }: NavbarProps) {
               <button
                 key={t}
                 type="button"
-                onClick={() => setType(t)}
+                onClick={() => onViewModeChange?.(t)}
                 className={cn(
                   "px-3 py-1.5 rounded-md capitalize",
-                  type === t
+                  viewMode === t
                     ? "bg-background shadow text-foreground"
                     : "text-muted-foreground"
                 )}
@@ -88,7 +94,7 @@ export function Navbar({ cartCount }: NavbarProps) {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={`Search ${type}...`}
+              placeholder={`Search ${viewMode}...`}
               className="pl-9 h-11 rounded-xl"
             />
           </div>
@@ -123,21 +129,20 @@ export function Navbar({ cartCount }: NavbarProps) {
       <form onSubmit={onSubmit} className="md:hidden px-4 pb-3">
         <div className="flex items-center gap-2">
           <div className="inline-flex rounded-md p-1 bg-secondary text-sm">
-            {(["cakes", "shops"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setType(t)}
-                className={cn(
-                  "px-3 py-1.5 rounded-md capitalize",
-                  type === t
-                    ? "bg-background shadow text-foreground"
-                    : "text-muted-foreground"
-                )}
-              >
-                {t}
-              </button>
-            ))}
+              {(["cakes", "shops"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => onViewModeChange?.(mode)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-md capitalize",
+                        viewMode === mode
+                          ? "bg-background shadow text-foreground"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      {mode}
+                    </button>
+                  ))}
           </div>
           <div className="relative flex-1">
             <Search
@@ -147,7 +152,7 @@ export function Navbar({ cartCount }: NavbarProps) {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={`Search ${type}...`}
+              placeholder={`Search ${viewMode}...`}
               className="pl-9 h-11 rounded-xl"
             />
           </div>

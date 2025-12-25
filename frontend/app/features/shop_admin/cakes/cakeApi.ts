@@ -16,6 +16,12 @@ interface BackendCake {
   status: "active" | "inactive";
   created_at?: string;
   updated_at?: string;
+  // Shop information
+  shopname?: string;
+  city?: string;
+  // Review information
+  rating?: number;
+  reviews?: number;
 }
 
 export interface CakeData {

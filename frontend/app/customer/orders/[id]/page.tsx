@@ -4,10 +4,14 @@ import { useParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/app/store/Store";
 import { SectionHeading } from "@/app/Home/SectionHeading";
-import { Truck, CheckCircle2, Clock, Package, Phone, Mail, MapPin, Calendar, CreditCard } from "lucide-react";
-import { fetchOrderById } from "@/app/features/orders/orderApi";
+import { Truck, CheckCircle2, Clock, Package, Phone, Mail, MapPin, Calendar, CreditCard, Wifi, WifiOff } from "lucide-react";
+import { fetchOrderById, startRealTimeTracking, subscribeToTrackingUpdates, unsubscribeFromTrackingUpdates } from "@/app/features/orders/orderApi";
+import { updateTracking, toggleRealTimeUpdates } from "@/app/features/orders/orderSlice";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import DeliveryInstructionsForm from "@/app/components/orders/DeliveryInstructionsForm";
+import { Tracking } from "@/app/features/orders/trackingService";
 
 interface OrderItem {
   id: string;
@@ -24,10 +28,11 @@ interface OrderItem {
 export default function CustomerTracker() {
   const { id } = useParams();
   const dispatch = useDispatch<AppDispatch>();
-  const { currentOrder, loading } = useSelector(
+  const { currentOrder, loading, tracking, realTimeUpdates } = useSelector(
     (state: RootState) => state.orders
   );
   const [estimatedDelivery, setEstimatedDelivery] = useState<string>("");
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   const steps = [
     { name: "Order Placed", icon: Package, description: "Your order has been received" },
@@ -64,14 +69,30 @@ export default function CustomerTracker() {
   useEffect(() => {
     if (id && typeof id === "string") {
       dispatch(fetchOrderById(id));
+      dispatch(startRealTimeTracking(id));
     }
   }, [dispatch, id]);
+
+  useEffect(() => {
+    if (id && typeof id === "string" && realTimeUpdates) {
+      const websocket = subscribeToTrackingUpdates(id, dispatch);
+      return () => {
+        unsubscribeFromTrackingUpdates();
+      };
+    }
+  }, [dispatch, id, realTimeUpdates]);
 
   useEffect(() => {
     if (currentOrder) {
       setEstimatedDelivery(calculateEstimatedDelivery(currentOrder.status, currentOrder.createdAt));
     }
   }, [currentOrder]);
+
+  useEffect(() => {
+    if (tracking) {
+      setLastUpdate(new Date());
+    }
+  }, [tracking]);
 
   if (loading || !currentOrder) return <p>Loading order tracking...</p>;
 
@@ -88,6 +109,30 @@ export default function CustomerTracker() {
         <h1 className="text-3xl font-bold tracking-tight">Order Tracker</h1>
         <p className="text-muted-foreground mt-2">Follow your cake from oven to doorstep</p>
       </div>
+
+      {/* Real-time Updates Toggle */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              {realTimeUpdates ? <Wifi className="w-5 h-5 text-green-600" /> : <WifiOff className="w-5 h-5 text-gray-400" />}
+              Live Tracking
+            </CardTitle>
+            <Button
+              variant={realTimeUpdates ? "default" : "outline"}
+              size="sm"
+              onClick={() => dispatch(toggleRealTimeUpdates())}
+            >
+              {realTimeUpdates ? "Live Updates On" : "Enable Live Updates"}
+            </Button>
+          </div>
+          {lastUpdate && (
+            <p className="text-sm text-muted-foreground">
+              Last updated: {lastUpdate.toLocaleTimeString()}
+            </p>
+          )}
+        </CardHeader>
+      </Card>
 
       {/* Order Summary Card */}
       <Card>
@@ -207,6 +252,9 @@ export default function CustomerTracker() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delivery Instructions */}
+      <DeliveryInstructionsForm orderId={id!} isEditable={currentOrder.status === 'Pending'} />
 
       {/* Delivery Information */}
       <Card>

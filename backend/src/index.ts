@@ -12,6 +12,8 @@ import cartRouter from "./routes/cartRoutes";
 import superAdminRouter from "./routes/superAdminRoutes";
 import reviewRouter from "./routes/reviewRoutes";
 import websiteSettingsRouter from "./routes/websiteSettingsRoutes";
+import shopAdminRouter from "./routes/shopAdminRoutes";
+import { encryptionMiddleware } from "./middleware/encryptionMiddleware";
 
 dotenv.config();
 const app: Application = express();
@@ -26,6 +28,9 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+app.use(encryptionMiddleware);
+
 app.use("/api/auth", authRouter);
 app.use("/api/customers", customerRouter);
 app.use("/api/cakes", cakeRouter);
@@ -36,6 +41,7 @@ app.use("/api/cart", cartRouter);
 app.use("/api/super-admin", superAdminRouter);
 app.use("/api/reviews", reviewRouter);
 app.use("/api/website-settings", websiteSettingsRouter);
+app.use("/api/shop-admin", shopAdminRouter);
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

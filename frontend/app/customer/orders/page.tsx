@@ -5,14 +5,17 @@ import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 import { AppDispatch, RootState } from "@/app/store/Store";
 import { fetchAllOrders } from "@/app/features/orders/orderApi";
-import { Package, Truck, CheckCircle, Clock, XCircle, Eye } from "lucide-react";
-import api from "@/app/utils/axios";
+import { Package, Truck, CheckCircle, Clock, XCircle, Eye, Search, Filter, RefreshCw, ShoppingCart } from "lucide-react";
+import { reorderItems, addToCartFromOrder } from "@/app/features/orders/reorderApi";
+import { toast } from "react-hot-toast";
 
 interface Order {
-  id: string;
+  id: number;
   orderNo: number;
   customerId: string;
   status: "Pending" | "Completed" | "Cancelled";
@@ -45,30 +48,15 @@ export default function OrdersPage() {
   const { orders, loading, error } = useSelector((state: RootState) => state.orders);
   const { user } = useSelector((state: RootState) => state.auth);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
-  const [directApiData, setDirectApiData] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Pending' | 'Completed' | 'Cancelled'>('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'last7days' | 'last30days' | 'last3months'>('all');
+  const [reordering, setReordering] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchAllOrders());
-    
-    // Test direct API call
-    const testDirectApi = async () => {
-      try {
-        const response = await api.get("/orders/getAllOrders");
-        console.log("Direct API Response:", response.data);
-        setDirectApiData(response.data);
-      } catch (error) {
-        console.error("Direct API Error:", error);
-      }
-    };
-    
-    testDirectApi();
   }, [dispatch]);
 
-  // Debug logging
-  useEffect(() => {
-    console.log("Orders Redux State:", { orders, loading, error, user });
-    console.log("Direct API Data:", directApiData);
-  }, [orders, loading, error, user, directApiData]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -96,6 +84,53 @@ export default function OrdersPage() {
     }
   };
 
+  const handleReorder = async (order: Order) => {
+    if (!order.items || order.items.length === 0) {
+      toast.error('No items available for reorder');
+      return;
+    }
+
+    setReordering(order.id);
+    try {
+      const orderItems = order.items.map(item => ({
+        cake_id: item.cake_id,
+        qty: item.qty
+      }));
+      
+      await dispatch(reorderItems(orderItems)).unwrap();
+      toast.success('Order placed successfully!');
+      
+      // Refresh orders to show new order
+      dispatch(fetchAllOrders());
+    } catch (error: any) {
+      toast.error(error || 'Failed to place reorder');
+    } finally {
+      setReordering(null);
+    }
+  };
+
+  const handleAddToCart = async (order: Order) => {
+    if (!order.items || order.items.length === 0) {
+      toast.error('No items available to add to cart');
+      return;
+    }
+
+    setReordering(order.id);
+    try {
+      const orderItems = order.items.map(item => ({
+        cake_id: item.cake_id,
+        qty: item.qty
+      }));
+      
+      await dispatch(addToCartFromOrder(orderItems)).unwrap();
+      toast.success('Items added to cart!');
+    } catch (error: any) {
+      toast.error(error || 'Failed to add items to cart');
+    } finally {
+      setReordering(null);
+    }
+  };
+
   const getOrderTrackingSteps = (status: string) => {
     const steps = [
       { name: "Order Placed", icon: Package, completed: true },
@@ -118,7 +153,9 @@ export default function OrdersPage() {
     return (
       <div className="p-6 text-center">
         <h2 className="text-xl font-semibold mb-4 text-red-600">Error</h2>
-        <p className="text-gray-600">{error}</p>
+        <p className="text-gray-600">
+          {typeof error === 'string' ? error : error?.message || 'An unknown error occurred'}
+        </p>
         <Button 
           onClick={() => dispatch(fetchAllOrders())}
           className="mt-4"
@@ -129,30 +166,47 @@ export default function OrdersPage() {
     );
   }
 
-  const ordersArray = Array.isArray(orders) && orders.length > 0 
-    ? orders 
-    : (directApiData?.data || []);
+  const ordersArray = Array.isArray(orders) ? orders : [];
 
   const filteredOrders = user
     ? ordersArray.filter((order: Order) => {
-        // Check nested customer email
-        if (order.customer?.email === user) return true;
+        // Customer filtering
+        const isCustomerOrder = 
+          order.customer?.email === user ||
+          order.customerEmail === user ||
+          order.customer_email === user;
         
-        // Check root level customer fields (for backward compatibility)
-        if (order.customerEmail === user) return true;
-        if (order.customer_email === user) return true;
+        if (!isCustomerOrder) return false;
         
-        // Check if customer data is null but we have other customer info
-        if (!order.customer && order.customerEmail === user) return true;
-        if (!order.customer && order.customer_email === user) return true;
+        // Search filtering
+        const matchesSearch = searchTerm === '' || 
+          order.orderNo?.toString().includes(searchTerm) ||
+          order.items?.some(item => item.cake?.cake_name?.toLowerCase().includes(searchTerm.toLowerCase()));
         
-        // For now, show all orders if customer data is missing (temporary fix)
-        if (!order.customer) {
-          console.log("Order with null customer:", order.id);
-          return true; // Show all orders temporarily
+        // Status filtering
+        const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+        
+        // Date filtering
+        let matchesDate = true;
+        if (dateFilter !== 'all' && order.createdAt) {
+          const orderDate = new Date(order.createdAt);
+          const now = new Date();
+          const daysDiff = Math.floor((now.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24));
+          
+          switch (dateFilter) {
+            case 'last7days':
+              matchesDate = daysDiff <= 7;
+              break;
+            case 'last30days':
+              matchesDate = daysDiff <= 30;
+              break;
+            case 'last3months':
+              matchesDate = daysDiff <= 90;
+              break;
+          }
         }
         
-        return false;
+        return matchesSearch && matchesStatus && matchesDate;
       })
     : [];
 
@@ -167,20 +221,7 @@ export default function OrdersPage() {
 
   return (
     <div className="p-6">
-      {/* Temporary Debug Panel */}
-      <div className="mb-4 p-4 bg-yellow-100 rounded text-sm">
-        <p><strong>Debug Info:</strong></p>
-        <p>Loading: {loading ? 'Yes' : 'No'}</p>
-        <p>Error: {error || 'None'}</p>
-        <p>User: {user || 'Not logged in'}</p>
-        <p>Redux Orders count: {Array.isArray(orders) ? orders.length : 'Not an array'}</p>
-        <p>Direct API Data: {directApiData ? `Success - ${directApiData.data?.length || 0} orders` : 'Loading...'}</p>
-        <p>Filtered orders count: {filteredOrders.length}</p>
-        <p>Customer Data Issue: {ordersArray[0]?.customer === null ? 'YES - Customer data is null in orders' : 'No'}</p>
-        <p>Sample order: {ordersArray[0] ? JSON.stringify(ordersArray[0], null, 2) : 'No orders'}</p>
-        <p>Direct API Sample: {directApiData?.data?.[0] ? JSON.stringify(directApiData.data[0], null, 2) : 'No direct data'}</p>
-      </div>
-
+      
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Your Orders</h1>
         <div className="flex gap-2">
@@ -198,6 +239,64 @@ export default function OrdersPage() {
           </Button>
         </div>
       </div>
+
+      {/* Search and Filter Controls */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            Search & Filter Orders
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by order # or cake name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={(value: any) => setStatusFilter(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Completed">Completed</SelectItem>
+                <SelectItem value="Cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={dateFilter} onValueChange={(value: any) => setDateFilter(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by date" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="last7days">Last 7 Days</SelectItem>
+                <SelectItem value="last30days">Last 30 Days</SelectItem>
+                <SelectItem value="last3months">Last 3 Months</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchTerm('');
+                setStatusFilter('all');
+                setDateFilter('all');
+              }}
+            >
+              Clear Filters
+            </Button>
+          </div>
+          <div className="mt-4 text-sm text-muted-foreground">
+            Showing {filteredOrders.length} of {ordersArray.length} orders
+          </div>
+        </CardContent>
+      </Card>
 
       {viewMode === 'table' ? (
         <Card>
@@ -260,12 +359,36 @@ export default function OrdersPage() {
                         </div>
                       </td>
                       <td className="p-3">
-                        <Link href={`/customer/orders/${order.id}`}>
-                          <Button variant="outline" size="sm">
-                            <Eye className="w-4 h-4 mr-1" />
-                            View
-                          </Button>
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/customer/orders/${order.id}`}>
+                            <Button variant="outline" size="sm">
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
+                            </Button>
+                          </Link>
+                          {order.status === 'Completed' && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleAddToCart(order)}
+                                disabled={reordering === order.id}
+                              >
+                                <ShoppingCart className="w-4 h-4 mr-1" />
+                                {reordering === order.id ? 'Adding...' : 'Add to Cart'}
+                              </Button>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleReorder(order)}
+                                disabled={reordering === order.id}
+                              >
+                                <RefreshCw className="w-4 h-4 mr-1" />
+                                {reordering === order.id ? 'Reordering...' : 'Reorder'}
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -341,12 +464,36 @@ export default function OrdersPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Link href={`/customer/orders/${order.id}`} className="w-full">
-                  <Button className="w-full">
-                    <Eye className="w-4 h-4 mr-2" />
-                    View Details & Track
-                  </Button>
-                </Link>
+                <div className="w-full space-y-2">
+                  <Link href={`/customer/orders/${order.id}`} className="w-full">
+                    <Button className="w-full">
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Details & Track
+                    </Button>
+                  </Link>
+                  {order.status === 'Completed' && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => handleAddToCart(order)}
+                        disabled={reordering === order.id}
+                      >
+                        <ShoppingCart className="w-4 h-4 mr-1" />
+                        {reordering === order.id ? 'Adding...' : 'Add to Cart'}
+                      </Button>
+                      <Button
+                        variant="default"
+                        className="flex-1"
+                        onClick={() => handleReorder(order)}
+                        disabled={reordering === order.id}
+                      >
+                        <RefreshCw className="w-4 h-4 mr-1" />
+                        {reordering === order.id ? 'Reordering...' : 'Reorder'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardFooter>
             </Card>
           ))}

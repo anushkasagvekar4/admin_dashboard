@@ -4,7 +4,7 @@ import { Cake } from "./cake";
 import knex from "../db/knexInstance";
 export class OrderItem extends Model {
   id!: string;
-  order_id!: string;
+  order_id!: number;
   cake_id!: string;
   qty!: number;
   price!: number;
@@ -37,7 +37,7 @@ export class OrderItem extends Model {
     required: ["order_id", "cake_id", "qty", "price"],
     properties: {
       id: { type: "string", format: "uuid" },
-      order_id: { type: "string", format: "uuid" },
+      order_id: { type: "integer" },
       cake_id: { type: "string", format: "uuid" },
       qty: { type: "integer", minimum: 1 },
       price: { type: "number", minimum: 0 },

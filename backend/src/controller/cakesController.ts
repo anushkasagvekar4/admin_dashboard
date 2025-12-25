@@ -70,9 +70,10 @@ export const getAllCakes = async (req: AuthRequest, res: Response) => {
     const knexInstance = Cake.knex();
 
     let query = Cake.query()
-      .select("cakes.*")
+      .select("cakes.*", "shops.shopname", "shops.city")
       .leftJoin("reviews", "reviews.cake_id", "cakes.id")
-      .groupBy("cakes.id")
+      .leftJoin("shops", "shops.id", "cakes.shopId")
+      .groupBy("cakes.id", "shops.shopname", "shops.city")
       .select(
         knexInstance.raw("COALESCE(AVG(reviews.rating), 0)::float as rating"),
         knexInstance.raw("COUNT(reviews.id) as reviews")
@@ -102,10 +103,11 @@ export const getCakeById = async (req: Request, res: Response) => {
     const knexInstance = Cake.knex();
 
     const cake = await Cake.query()
-      .select("cakes.*")
+      .select("cakes.*", "shops.shopname", "shops.city")
       .leftJoin("reviews", "reviews.cake_id", "cakes.id")
+      .leftJoin("shops", "shops.id", "cakes.shopId")
       .where("cakes.id", id)
-      .groupBy("cakes.id")
+      .groupBy("cakes.id", "shops.shopname", "shops.city")
       .select(
         knexInstance.raw("COALESCE(AVG(reviews.rating), 0)::float as rating"),
         knexInstance.raw("COUNT(reviews.id) as reviews")

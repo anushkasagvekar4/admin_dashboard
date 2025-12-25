@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "./SectionHeading";
 import { RatingStars } from "./RatingStars";
+import ReviewComponent from "../components/ReviewComponent";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -25,12 +27,18 @@ import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCartAPI } from "../features/orders/cartApi";
 import { getCakes } from "../features/shop_admin/cakes/cakeApi";
-import { fetchActiveShops } from "../features/shops/shopsApi";
+import { fetchActiveShops, Shop } from "../features/shops/shopsApi";
 import { AppDispatch, RootState } from "../store/Store";
 import Swal from "sweetalert2";
-export default function Index() {
+interface IndexProps {
+  viewMode: "cakes" | "shops";
+  onViewModeChange: (mode: "cakes" | "shops") => void;
+}
+
+export default function Index({ viewMode, onViewModeChange }: IndexProps) {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
+  const searchParams = useSearchParams();
 
   // ✅ Fetch cakes and auth data from Redux
   const { cakes, loading, error } = useSelector(
@@ -44,7 +52,7 @@ export default function Index() {
   // ✅ Shop toggle state
   const [shopEnabled, setShopEnabled] = useState(true);
   const [showShopInfo, setShowShopInfo] = useState(false);
-  const [viewMode, setViewMode] = useState<"cakes" | "shops">("cakes");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
 
   // ✅ Fetch cakes and shops on page load
   useEffect(() => {
@@ -53,7 +61,16 @@ export default function Index() {
   }, [dispatch]);
 
   // ✅ Take only first 6 cakes for "Featured" section
-  const featured = useMemo(() => cakes.slice(0, 6), [cakes]);
+  const featured = useMemo(() => {
+    let filteredCakes = cakes;
+    if (searchQuery) {
+      filteredCakes = cakes.filter(cake => 
+        cake.cake_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        cake.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    return filteredCakes.slice(0, 6);
+  }, [cakes, searchQuery]);
 
   const heroStats = useMemo(
     () => [
@@ -177,36 +194,7 @@ export default function Index() {
             </div>
 
             {/* View Mode Toggle */}
-            <div className="mt-6 p-4 rounded-2xl border bg-card/50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Store className="w-5 h-5 text-primary" />
-                  <div>
-                    <div className="font-semibold">View Mode</div>
-                    <div className="text-sm text-muted-foreground">
-                      {viewMode === "cakes" ? "Showing cake gallery" : "Showing shop directory"}
-                    </div>
-                  </div>
-                </div>
-                <div className="inline-flex rounded-md p-1 bg-secondary text-sm">
-                  {(["cakes", "shops"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      onClick={() => setViewMode(mode)}
-                      className={cn(
-                        "px-3 py-1.5 rounded-md capitalize",
-                        viewMode === mode
-                          ? "bg-background shadow text-foreground"
-                          : "text-muted-foreground"
-                      )}
-                    >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
+            
             {/* Shop Toggle Section */}
             <div className="mt-8 p-4 rounded-2xl border bg-card/50">
               <div className="flex items-center justify-between">
@@ -430,7 +418,7 @@ export default function Index() {
             <p>No shops available.</p>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {shops.map((shop) => (
+              {shops.map((shop: Shop) => (
                 <Link key={shop.id} href={`/shops/${shop.id}`}>
                   <div
                     className="group rounded-2xl overflow-hidden border bg-card shadow-sm hover:shadow-md transition-all cursor-pointer"
@@ -507,18 +495,48 @@ export default function Index() {
                 </div>
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-semibold">{c.cake_name}</div>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <RatingStars rating={4.8} className="flex" />
-                        <span>4.8</span>
+                    <div className="flex-1">
+                      <div className="font-semibold text-lg group-hover:text-primary transition-colors">
+                        {c.cake_name}
+                      </div>
+                      
+                      {/* Shop Name - Prominently displayed */}
+                      <div className="mt-1 flex items-center gap-1">
+                        <Store className="w-3 h-3 text-primary" />
+                        <span className="text-sm font-medium text-primary hover:underline">
+                          {c.shopname}
+                        </span>
+                        {c.city && (
+                          <span className="text-sm text-muted-foreground">
+                            • {c.city}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="mt-2">
+                        <ReviewComponent 
+                          cakeId={c.id}
+                          cakeName={c.cake_name}
+                          rating={c.rating || 0}
+                          reviewCount={c.reviews || 0}
+                          showWriteReview={false}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Price Badge */}
+                    <div className="text-right">
+                      <div className="font-bold text-lg text-primary">
+                        ₹{Number(c.price).toFixed(2)}
                       </div>
                     </div>
                   </div>
+                  
                   <Button
                     className="mt-3 w-full"
                     onClick={() => handleAddToCart(c)}
                   >
+                    <ShoppingCart className="w-4 h-4 mr-2" />
                     Add to Cart
                   </Button>
                 </div>

@@ -16,6 +16,7 @@ import {
   Star, 
   ArrowLeft, 
   ShoppingBag,
+  ShoppingCart,
   Store,
   CheckCircle
 } from "lucide-react";
@@ -170,6 +171,18 @@ export default function ShopDetailPage() {
                 <span>Usually responds within 2 hours</span>
               </div>
             </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3 pt-4">
+              <Button size="lg" className="rounded-lg">
+                <ShoppingBag className="w-4 h-4 mr-2" />
+                Browse Cakes
+              </Button>
+              <Button variant="outline" size="lg" className="rounded-lg">
+                <Phone className="w-4 h-4 mr-2" />
+                Contact Shop
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -183,11 +196,36 @@ export default function ShopDetailPage() {
               {shopCakes.length} delicious cakes from {currentShop.shopname}
             </p>
           </div>
-          <Badge variant="outline" className="px-3 py-1">
-            <ShoppingBag className="w-4 h-4 mr-1" />
-            {shopCakes.length} Items
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="px-3 py-1">
+              <ShoppingBag className="w-4 h-4 mr-1" />
+              {shopCakes.length} Items
+            </Badge>
+            {shopCakes.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                From ₹{Math.min(...shopCakes.map(c => Number(c.price))).toFixed(2)} to ₹{Math.max(...shopCakes.map(c => Number(c.price))).toFixed(2)}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Filter and Sort Options */}
+        {shopCakes.length > 0 && (
+          <div className="mb-6 flex flex-wrap gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-medium">Quick filters:</span>
+              <Badge variant="secondary" className="cursor-pointer hover:bg-primary hover:text-primary-foreground">
+                All Cakes
+              </Badge>
+              <Badge variant="outline" className="cursor-pointer hover:bg-primary hover:text-primary-foreground">
+                Available Now
+              </Badge>
+              <Badge variant="outline" className="cursor-pointer hover:bg-primary hover:text-primary-foreground">
+                Under ₹500
+              </Badge>
+            </div>
+          </div>
+        )}
 
         {shopCakes.length === 0 ? (
           <Card>
@@ -244,26 +282,41 @@ export default function ShopDetailPage() {
                           {cake.description}
                         </p>
                       )}
+                      
+                      {/* Category and Availability */}
+                      <div className="flex items-center gap-2 mt-2">
+                        {cake.category && (
+                          <Badge variant="secondary" className="text-xs">
+                            {cake.category}
+                          </Badge>
+                        )}
+                        {cake.available && (
+                          <Badge variant="default" className="text-xs bg-green-100 text-green-800">
+                            Available
+                          </Badge>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2 mb-3">
                       <RatingStars rating={4.8} className="flex" />
                       <span className="text-sm text-muted-foreground">4.8</span>
+                      <span className="text-xs text-muted-foreground">(12 reviews)</span>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-bold text-lg">₹{Number(cake.price).toFixed(2)}</p>
-                        {cake.category && (
-                          <p className="text-xs text-muted-foreground">{cake.category}</p>
-                        )}
+                        <p className="font-bold text-lg text-primary">₹{Number(cake.price).toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground">per cake</p>
                       </div>
                       <Button
                         size="sm"
                         onClick={() => handleAddToCart(cake)}
                         className="rounded-lg"
+                        disabled={!cake.available}
                       >
-                        Add to Cart
+                        <ShoppingCart className="w-4 h-4 mr-1" />
+                        {cake.available ? "Add to Cart" : "Unavailable"}
                       </Button>
                     </div>
                   </div>

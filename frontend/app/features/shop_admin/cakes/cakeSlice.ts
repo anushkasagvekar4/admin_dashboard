@@ -21,8 +21,17 @@ interface Cake {
   status: "active" | "inactive";
   created_at?: string;
   updated_at?: string;
+  // Review information
   rating?: number;
   reviews?: number;
+  // Shop information
+  shopname?: string;
+  city?: string;
+  // Additional properties
+  isEggless?: boolean;
+  weight?: string;
+  sameDayDelivery?: boolean;
+  midnightDelivery?: boolean;
 }
 
 interface CakeState {

@@ -5,6 +5,7 @@ export interface AuthRequest extends Request {
   user?: {
     id: string;
     role: "customer" | "shop_admin" | "super_admin";
+    shopId?: string;
   };
 }
 

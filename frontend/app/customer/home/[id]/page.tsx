@@ -126,6 +126,11 @@ export default function CakeDetails() {
                 No image available
               </div>
             )}
+                
+                {/* Zoom indicator */}
+                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  Hover to zoom
+                </div>
           </div>
 
           {cake.images && cake.images.length > 1 && (
@@ -148,9 +153,13 @@ export default function CakeDetails() {
         </div>
 
         {/* Right: Cake Info */}
-        <div className="flex flex-col justify-between h-full">
+            <div className="flex flex-col justify-between space-y-8">
+              <div className="space-y-6">
+                {/* Cake Title and Shop Info */}
+                <div>
+                  <div className="flex items-start justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                      <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-3 leading-tight">
               {cake.cake_name}
             </h1>
             <p className="text-gray-600 mb-4">

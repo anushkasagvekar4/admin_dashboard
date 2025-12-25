@@ -39,9 +39,20 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle auth errors
+// Add response interceptor to handle auth errors and decryption
+import { decryptResponse } from "./encryption";
+
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Check if the response data has the encrypted 'data' field
+    if (response.data && response.data.data && typeof response.data.data === 'string' && Object.keys(response.data).length === 1) {
+       const decrypted = decryptResponse(response.data.data);
+       if (decrypted) {
+         response.data = decrypted;
+       }
+    }
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401) {
       // Token expired or invalid

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchActiveShops } from "@/app/features/shops/shopsApi";
 import { AppDispatch, RootState } from "@/app/store/Store";
@@ -14,11 +15,12 @@ import Image from "next/image";
 
 export default function ShopsPage() {
   const dispatch = useDispatch<AppDispatch>();
+  const searchParams = useSearchParams();
   const { shops, loading, error, pagination } = useSelector(
     (state: RootState) => state.publicShops
   );
 
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [selectedCity, setSelectedCity] = useState("all");
   const [sortBy, setSortBy] = useState("created_at");
   const [currentPage, setCurrentPage] = useState(1);

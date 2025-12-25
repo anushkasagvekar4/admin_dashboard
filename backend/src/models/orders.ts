@@ -3,10 +3,11 @@ import { OrderItem } from "./orderItems";
 import { Customer } from "./customer";
 import knex from "../db/knexInstance";
 export class Order extends Model {
-  id!: string;
+  id!: number;
   order_no!: number;
   customer_id!: string;
   status!: "Pending" | "Completed" | "Cancelled";
+  tracking_status!: "Order Placed" | "Processing" | "Shipped" | "Out for Delivery" | "Delivered" | "Cancelled";
   created_at!: string;
   updated_at!: string;
 
@@ -35,13 +36,18 @@ export class Order extends Model {
     type: "object",
     required: ["order_no", "customer_id"],
     properties: {
-      id: { type: "string", format: "uuid" },
+      id: { type: "integer" },
       order_no: { type: "integer" },
       customer_id: { type: "string", format: "uuid" },
       status: {
         type: "string",
         enum: ["Pending", "Completed", "Cancelled"],
         default: "Pending",
+      },
+      tracking_status: {
+        type: "string",
+        enum: ["Order Placed", "Processing", "Shipped", "Out for Delivery", "Delivered", "Cancelled"],
+        default: "Order Placed",
       },
       created_at: { type: "string", format: "date-time" },
       updated_at: { type: "string", format: "date-time" },

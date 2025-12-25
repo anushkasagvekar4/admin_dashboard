@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
+import ReviewComponent from "@/app/components/ReviewComponent";
 
 const CustomerDashboard: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -244,14 +245,20 @@ const CustomerDashboard: React.FC = () => {
             {cake.cake_name}
           </h3>
           <p className="text-sm text-gray-600 mb-2">
-            Local Bakery
+            {cake.shopname || "Local Bakery"} {cake.city && `• ${cake.city}`}
           </p>
 
+          <div className="mb-3">
+            <ReviewComponent 
+              cakeId={cake.id}
+              cakeName={cake.cake_name}
+              rating={cake.rating || 0}
+              reviewCount={cake.reviews || 0}
+              showWriteReview={true}
+            />
+          </div>
+
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center">
-              <Star className="text-yellow-400 fill-current" size={16} />
-              <span className="text-sm ml-1">{cake.rating || "4.5"}</span>
-            </div>
             <span className="text-lg font-bold">₹{cake.price}</span>
           </div>
 
